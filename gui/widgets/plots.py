@@ -1,16 +1,21 @@
 import matplotlib.figure
 from matplotlib import cm
-# import matplotlib.colors as colors
+from matplotlib import transforms
 import matplotlib.pyplot as plt
 matplotlib.rcParams.update({'font.size': 14})
+from matplotlib.widgets import Slider
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import matplotlib.gridspec as gridspec
 import numpy as np
 from scipy.linalg import lstsq
+from scipy.ndimage.interpolation import rotate
+from scipy import io
+import h5py
 import pyqtgraph.exporters
 import pyqtgraph as pg
-
-from qt import *
-from .components import ItemComboBox
-from utils import *
+from ..qt import *
+from .sliders import SliderWidget
+from ..utils import *
 from pyqtgraph.graphicsItems.GradientEditorItem import Gradients
 
 mpl_cmaps = ('viridis', 'plasma', 'inferno', 'magma', 'cividis', 'Greys')
@@ -19,20 +24,75 @@ pg_cmaps = ('thermal', 'flame', 'yellowy', 'bipolar', 'grey')#, 'spectrum', 'cyc
 __all__ = ['DataSetPlotter']
 
 class PlotWidget(QtWidgets.QWidget):
-
     def __init__(self, parent=None):
         super(PlotWidget, self).__init__(parent=parent)
         self.current_data = None
-        self.mpl_cmap = 'viridis'
+        self.exp_data = {}
         self.fig = matplotlib.figure.Figure()
         self.fig.patch.set_alpha(1)
+        self.fig.tight_layout()
+        self.fig.subplots_adjust(bottom=0.15)
+        self.canvas = FigureCanvasQTAgg(self.fig)
+        self.canvas.setParent(self)
+        self.canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.toolbar = NavigationToolbar2QT(self.canvas, self)
+        self.pyqt_plot = CrosshairPlotWidget(parent=self)
+        self.pyqt_imview = CrossSectionImageView(parent=self)
+        #self.raw_image_view = QtWidgets.QLabel()
+        self.pyqt_plot.hide()
+        self.pyqt_imview.hide()
+
         self.option_layout = QtWidgets.QHBoxLayout()
 
-        self.mpl_cmap_selector = ItemComboBox()
+        self._setup_cmap()
+        self._setup_background_subtraction()
+        self._setup_transforms()
+        self._setup_slices()
+        self._setup_options()
+
+        #self.raw_image_view.hide()
+        self.slice_state = 1
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addLayout(self.option_layout)
+        layout.addWidget(self.backsub_widget)
+        layout.addWidget(self.toolbar)
+        layout.addWidget(self.canvas)
+        self.pyqt_splitter = QtWidgets.QSplitter(Qt.Vertical, parent=self)
+        self.pyqt_splitter.hide()
+        layout.addWidget(self.pyqt_splitter)
+        layout.addWidget(self.rotate_widget)
+        
+        pyqt_top_widgets = QtWidgets.QWidget(parent=self)
+        pyqt_bottom_widgets = QtWidgets.QWidget(parent=self)
+        pyqt_top_layout = QtWidgets.QVBoxLayout(pyqt_top_widgets)
+        pyqt_bottom_layout = QtWidgets.QVBoxLayout(pyqt_bottom_widgets)
+        pyqt_top_layout.addWidget(self.pyqt_plot)
+        pyqt_top_layout.addWidget(self.pyqt_imview)
+        pyqt_bottom_layout.addWidget(self.pyqt_imview.h_cross_section_widget)
+        pyqt_bottom_layout.addWidget(self.pyqt_imview.v_cross_section_widget)
+        self.pyqt_imview.h_cross_section_widget.hide()
+        self.pyqt_imview.v_cross_section_widget.hide()
+        self.pyqt_splitter.addWidget(pyqt_top_widgets)
+        self.pyqt_splitter.addWidget(pyqt_bottom_widgets)
+        self.pyqt_splitter.setStretchFactor(0, 1.5)
+        self.pyqt_splitter.setStretchFactor(1,1)
+        #layout.addWidget(self.raw_image_view)
+        self.set_slice()
+
+    def _setup_cmap(self):
+        self.mpl_cmap = 'viridis'
+        self.mpl_cmap_selector = QtWidgets.QComboBox()
         self.mpl_cmap_selector.setSizeAdjustPolicy(QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToContents)
-        self.pg_cmap_selector = ItemComboBox()
+        self.pg_cmap_selector = QtWidgets.QComboBox()
         self.pg_cmap_selector.setSizeAdjustPolicy(QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToContents)
         cmap_widget = QtWidgets.QGroupBox('Colormaps')
+        # cmap_layout = QtWidgets.QGridLayout()
+        # cmap_widget.setLayout(cmap_layout)
+        # cmap_layout.addWidget(QtWidgets.QLabel('matplotlib'), 0, 0)
+        # cmap_layout.addWidget(self.mpl_cmap_selector, 0, 1)
+        # cmap_layout.addWidget(QtWidgets.QLabel('pyqtgraph'), 1, 0)
+        # cmap_layout.addWidget(self.pg_cmap_selector, 1, 1)
+        # cmap_widget.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum)
         mpl_cmap_widget = QtWidgets.QGroupBox('matplotlib')
         mpl_cmap_layout = QtWidgets.QHBoxLayout(mpl_cmap_widget)
         mpl_cmap_layout.addWidget(self.mpl_cmap_selector)
@@ -46,16 +106,25 @@ class PlotWidget(QtWidgets.QWidget):
         cmap_layout.addWidget(pg_cmap_widget)
         self.option_layout.addWidget(cmap_widget)
 
+        self.mpl_cmap_selector.currentIndexChanged.connect(self.set_cmap_mpl)
+        for name in mpl_cmaps:
+            self.mpl_cmap_selector.addItem(name)
+        self.mpl_cmap_selector.setCurrentIndex(0)
+        self.pg_cmap_selector.currentIndexChanged.connect(self.set_cmap_pg)
+        for name in pg_cmaps:
+            self.pg_cmap_selector.addItem(name)
+        self.pg_cmap_selector.setCurrentIndex(0)
+
+    def _setup_background_subtraction(self):
         self.backsub_radio = QtWidgets.QButtonGroup()
         backsub_buttons = [QtWidgets.QRadioButton(s) for s in ('none', 'min', 'max', 'mean', 'median', 'linear')]
         backsub_buttons[0].setChecked(True)
-        backsub_widget = QtWidgets.QGroupBox('Background subtraction')
-        backsub_widget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
-        backsub_layout = QtWidgets.QHBoxLayout(backsub_widget)
+        self.backsub_widget = QtWidgets.QGroupBox('Background subtraction')
+        self.backsub_widget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        backsub_layout = QtWidgets.QHBoxLayout(self.backsub_widget)
         for i, b in enumerate(backsub_buttons):
             backsub_layout.addWidget(b)
             self.backsub_radio.addButton(b, i)
-        #self.option_layout.addWidget(backsub_widget)
         self.backsub_radio.buttonClicked.connect(self.replot)
 
         self.line_backsub_radio = QtWidgets.QButtonGroup()
@@ -72,24 +141,15 @@ class PlotWidget(QtWidgets.QWidget):
         self.line_backsub_btn.stateChanged.connect(self.update_line_by_line)
         self.line_backsub_radio.buttonClicked.connect(self.replot)
 
-        self.canvas = FigureCanvasQTAgg(self.fig)
-        self.canvas.setParent(self)
-        self.canvas.setSizePolicy(
-            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding,
-        )
-        self.canvas.setFocusPolicy(Qt.ClickFocus)
-        self.canvas.setFocus()
-        self.toolbar = NavigationToolbar2QT(self.canvas, self)
-        self.pyqt_plot = CrosshairPlotWidget(parent=self)
-        self.pyqt_imview = CrossSectionImageView(parent=self)
-        # self.hist_plot = pg.PlotDataItem(parent=self)
-        self.raw_image_view = QtWidgets.QLabel()
-        # self.pyqt_plot.hist_plot = self.hist_plot
-        # self.pyqt_imview.hist_plot = self.hist_plot
-        self.pyqt_plot.hide()
-        self.pyqt_imview.hide()
-        #self.hist_plot.hide()
+    def _setup_transforms(self):
+        self.rotate_widget = QtWidgets.QGroupBox('Rotate')
+        rotate_layout = QtWidgets.QVBoxLayout()
+        self.rotate_widget.setLayout(rotate_layout)
+        self.rotate_slider = SliderWidget(-180, 180, 0, 60)
+        rotate_layout.addWidget(self.rotate_slider)
+        self.rotate_slider.angle_box.valueChanged.connect(self.replot)
 
+    def _setup_slices(self):
         self.slice_radio = QtWidgets.QButtonGroup()
         slice_buttons = [QtWidgets.QRadioButton(s) for s in ('none', 'x', 'y')]
         slice_buttons[0].setChecked(True)
@@ -102,69 +162,24 @@ class PlotWidget(QtWidgets.QWidget):
         self.slice_radio.buttonClicked.connect(self.set_slice)
         slice_widget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
 
+    def _setup_options(self):
+        opt_group = QtWidgets.QGroupBox('Plot Options')
+        opt_layout = QtWidgets.QVBoxLayout()
+        opt_group.setLayout(opt_layout)
         plot_opts = [
             ('pyqtgraph', False),
             ('histogram', True),
             ('zoom to fit', True),
             ('grid', True),
         ]
-
         self.opt_checks = {}
-        for optname, checked in plot_opts:
-            action = QtWidgets.QAction(optname, self)
-            action.setCheckable(True)
-            action.setChecked(checked)
-            action.toggled.connect(lambda enabled: self.replot())
-            self.addAction(action)
-            self.opt_checks[optname] = action
-        # for action in self.pyqt_imview.scene.contextMenu:
-        #     if action.text() == 'Export...':
-        #         action.setText('Export pyqtgraph...')
-        #     self.addAction(action)
-        self.setContextMenuPolicy(Qt.ActionsContextMenu)
-        #self.opt_checks['histogram'].toggled.connect(self.hist_plot.setVisible)
-        self.opt_checks['histogram'].toggled.connect(self.pyqt_imview.set_histogram)
-
-        self.mpl_cmap_selector.currentIndexChanged.connect(self.set_cmap_mpl)
-        for name in mpl_cmaps:
-            self.mpl_cmap_selector.addItem(name)
-        self.mpl_cmap_selector.setCurrentIndex(0)
-        self.pg_cmap_selector.currentIndexChanged.connect(self.set_cmap_pg)
-        for name in pg_cmaps:
-            self.pg_cmap_selector.addItem(name)
-        self.pg_cmap_selector.setCurrentIndex(0)
-
-        self.raw_image_view.hide()
-        self.slice_state = 1
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.addLayout(self.option_layout)
-        layout.addWidget(backsub_widget)
-        layout.addWidget(self.toolbar)
-        layout.addWidget(self.canvas)
-        self.pyqt_splitter = QtWidgets.QSplitter(Qt.Vertical, parent=self)
-        self.pyqt_splitter.hide()
-        layout.addWidget(self.pyqt_splitter)
-
-        pyqt_top_widgets = QtWidgets.QWidget(parent=self)
-        pyqt_bottom_widgets = QtWidgets.QWidget(parent=self)
-        pyqt_top_layout = QtWidgets.QVBoxLayout(pyqt_top_widgets)
-        pyqt_bottom_layout = QtWidgets.QVBoxLayout(pyqt_bottom_widgets)
-        pyqt_top_layout.addWidget(self.pyqt_plot)
-        pyqt_top_layout.addWidget(self.pyqt_imview)
-        pyqt_bottom_layout.addWidget(self.pyqt_imview.h_cross_section_widget)
-        pyqt_bottom_layout.addWidget(self.pyqt_imview.v_cross_section_widget)
-        self.pyqt_imview.h_cross_section_widget.hide()
-        self.pyqt_imview.v_cross_section_widget.hide()
-        self.pyqt_splitter.addWidget(pyqt_top_widgets)
-        self.pyqt_splitter.addWidget(pyqt_bottom_widgets)
-        self.pyqt_splitter.setStretchFactor(0, 1.5)
-        self.pyqt_splitter.setStretchFactor(1,1)
-        #self.pyqt_splitter.addWidget(self.hist_plot)
-        layout.addWidget(self.raw_image_view)
-        # self.sliders = []
-        self.set_slice()
-        # if dataset is not None:
-        #     self.canvas.draw()
+        for name, checked in plot_opts:
+            btn = QtWidgets.QCheckBox(name)
+            btn.setChecked(checked)
+            opt_layout.addWidget(btn)
+            btn.stateChanged.connect(self.replot)
+            self.opt_checks[name] = btn
+        self.option_layout.addWidget(opt_group)
 
     def set_cmap_mpl(self, idx):
         name = str(self.mpl_cmap_selector.itemText(idx))
@@ -180,7 +195,7 @@ class PlotWidget(QtWidgets.QWidget):
         self.pyqt_imview.set_cmap(name)
 
     def get_opt(self, optname):
-        return self.opt_checks[optname].isChecked()
+        return bool(self.opt_checks[optname].isChecked())
 
     def get_all_opts(self):
         return {name: self.get_opt(name) for name in self.opt_checks}
@@ -191,11 +206,6 @@ class PlotWidget(QtWidgets.QWidget):
 
     def plot_arrays(self, xs, ys, zs=None, title=''):
         self.fig_title = title
-        # if self.get_opt('keep viewport'):
-        #     ax = self.fig.gca()
-        #     xlim = ax.get_xlim()
-        #     ylim = ax.get_ylim()
-
         self.fig.clear()
         self.pyqt_plot.clear()
         self.toolbar.hide()
@@ -203,241 +213,197 @@ class PlotWidget(QtWidgets.QWidget):
         self.pyqt_splitter.hide()
         self.pyqt_plot.hide()
         self.pyqt_imview.hide()
-        self.raw_image_view.hide()
-
-        # if isinstance(dataset, str):
-        #     return self.plot_image_file(dataset)
-
-        # iq_result = result
-        # if self.get_opt('multithresh'):
-        #     result = result.multithresh()
-        # elif self.get_opt('threshold'):
-        #     result = result.threshold()
-        # if self.get_opt('average'):
-        #     result = result.axis_mean()
-        # result = result.squeeze()
-
-        # if not self.get_opt('errorbars'):
-        #     err_data = result.err_data
-        #     result.err_data = None
-        # new_sliders = not self.check_sliders(xs, ys, zs)
-        # if new_sliders:
-        #     self.clear_sliders()
-        # if result.ndim > 2 and iq_result.ndim > result.ndim:
-        #     iq_result = iq_result[[slice(None, None)] + self.get_slider_slice()]
-        # self.pyqt_plot.raw_iq_data = np.squeeze(iq_result.data)
-        # self.pyqt_imview.raw_iq_data = np.squeeze(iq_result.data)
-        # if result.ndim == 0:
-        #     self.plot_0d(result)
+        #self.raw_image_view.hide()
 
         # 1d data
         if zs is None:
             self.plot_1d(xs, ys)
         # 2d data
         else:
-            # if result.ndim > 2:
-            #     if new_sliders:
-            #         self.add_sliders(result)
-            #     idxs = self.get_slider_slice()
-            #     result = result[idxs]
-            self.plot_2d(xs, ys, zs)
-        # if not self.get_opt('pyqtgraph'):
-            #self.add_lines_mpl(result.vlines, result.hlines)
+            angle = self.rotate_slider.angle_box.value()
+            if self.slice_state == 1:
+                slice_state = None
+            elif self.slice_state == 2:
+                slice_state = 'x'
+            elif self.slice_state == 3:
+                slice_state = 'y'
+            self.plot_2d(xs, ys, zs, angle=angle, slice_state=slice_state)
         self.fig.suptitle(self.fig_title, fontsize=12)
-        self.fig.tight_layout()
-        self.fig.subplots_adjust(top=0.9, bottom=0.11)
-            # if self.get_opt('keep viewport'):
-            #     self.toolbar.push_current() # maintain home view
-            #     ax = self.fig.gca()
-            #     ax.set_xlim(*xlim)
-            #     ax.set_ylim(*ylim)
+        #self.fig.tight_layout()
         self.canvas.draw()
-        # if not self.get_opt('errorbars'):
-        #     result.err_data = err_data
-
-    # def check_sliders(self, xs, ys, zs):
-    #     dim = 3 if zs else 2
-    #     if dim - 2 != len(self.sliders):
-    #         return False
-    #     for s in self.sliders:
-    #         if zs[1].shape[s.index_box.value()] != s.slider.maximum() + 1:
-    #             return False
-    #     return True
-
-    # def plot_image_file(self, fname):
-    #     self.clear_sliders()
-    #     self.raw_image_view.show()
-    #     QtWidgets.QApplication.instance().processEvents()
-    #     w = self.raw_image_view.width()
-    #     h = self.raw_image_view.height()
-    #     pixmap = QtGui.QPixmap(fname).scaled(w, h, Qt.KeepAspectRatio)
-    #     self.raw_image_view.setPixmap(pixmap)
-
-    # def clear_sliders(self):
-    #     layout = self.layout()
-    #     for s in self.sliders:
-    #         layout.removeWidget(s)
-    #         s.setParent(None)
-    #     self.sliders = []
-
-    # def add_sliders(self, arrays):
-    #     for name, arr in arrays.items():
-    #         if name not in self.indep_vars:
-    #             dim = arr.dim
-    #             break
-    #     layout = self.layout()
-    #     for i, n in enumerate(dims[:-2]):
-    #         widget = SliceWidget(arr, i, parent=self)
-    #         widget.slider.valueChanged.connect(self.replot)
-    #         widget.index_box.valueChanged.connect(self.replot)
-    #         layout.addWidget(widget)
-    #         self.sliders.append(widget)
-
-    # def get_slider_slice(self):
-    #     idxs = [slice(None, None)] * (len(self.sliders) + 2)
-    #     for s in self.sliders:
-    #         idxs[s.index_box.value()] = s.slider.value()
-    #     return idxs
-
-    # def plot_0d(self, result):
-    #     self.toolbar.show()
-    #     self.canvas.show()
-
-    #     val = result.data
-    #     s = '%.4g' % val
-    #     if result.err_data is not None:
-    #         s = '%.4g +/- %.4g' % (val, result.err_data)
-    #     ax = self.fig.add_subplot(111)
-    #     ax.text(.5, .5, s, horizontalalignment='center', verticalalignment='center', transform=ax.transAxes, fontsize=20)
 
     def plot_1d(self, xs, ys, label='data'):
         label = ys[0]
         xlabel = f'{xs[0]} [{xs[1].units}]'
         ylabel = f'{ys[0]} [{ys[1].units}]'
-        # xlabel, ylabel = , ''
-        # if result.labels is not None:
-        #     if len(result.labels) == 1:
-        #         xlabel = result.labels[0]
-        #     else:
-        #         xlabel, ylabel = result.labels[:2]
         fmt = '.'
-        # if multiline:
-        #     fmt += '--'
-        # if result.plot_fmt is not None:
-        #     fmt = result.plot_fmt
-
         ymin, ymax = np.min(ys[1]), np.max(ys[1])
         if self.get_opt('pyqtgraph'):
             self.pyqt_splitter.show()
             self.pyqt_plot.show()
-            #self.pyqt_plot.setTitle(label)
             self.plot_1d_pg(xs, ys, xlabel, ylabel, label)
         else:
             self.toolbar.show()
             self.canvas.show()
             self.plot_1d_mpl(xs, ys, xlabel, ylabel, fmt, ymin, ymax, label)
+        self.rotate_widget.hide()
+        self.exp_data = {d[0]: {'array': d[1].magnitude, 'unit': str(d[1].units)} for d in (xs, ys)}
 
     def plot_1d_pg(self, xs, ys, xlabel, ylabel, label):
         self.pyqt_plot.setLabels(bottom=(xlabel,), left=(ylabel,))
         self.pyqt_plot.plot(xs[1], ys[1], symbol='o', pen=None)
 
     def plot_1d_mpl(self, xs, ys, xlabel, ylabel, fmt, ymin, ymax, label):
-        axes = self.fig.add_subplot(111)
-        axes.set_xlabel(xlabel)
-        axes.set_ylabel(ylabel)
-        axes.plot(xs[1], ys[1], fmt, label=label)
+        ax = self.fig.add_subplot(111)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.plot(xs[1], ys[1], fmt, label=label)
         if not self.get_opt('zoom to fit'):
-            axes.set_ylim(ymin, ymax)
-        axes.grid(self.get_opt('grid'))
-        axes.legend()
+            ax.set_ylim(ymin, ymax)
+        ax.grid(self.get_opt('grid'))
+        self.fig.tight_layout()
+        self.fig.subplots_adjust(top=0.9, bottom=0.15)
+        ax.legend()
 
-    # def plot_2d_multiline(self, xs, ys, zs, transpose=False):
-    #     if transpose:
-    #         for i in range(result.shape[1])[:MULTILINE_MAX]:
-    #             self.plot_1d(result[:,i], multiline=(i != 0), label=str(i))
-    #     else:
-    #         for i, sub_r in enumerate(result[:MULTILINE_MAX]):
-    #             self.plot_1d(sub_r, multiline=(i != 0), label=str(i))
-
-
-    def plot_2d(self, xs, ys, zs, cmap=None):
+    def plot_2d(self, xs, ys, zs, cmap=None, angle=0, slice_state=None):
         cmap = cmap or self.mpl_cmap
         xlabel = f'{xs[0]} [{xs[1].units}]'
         ylabel = f'{ys[0]} [{ys[1].units}]'
         zlabel = f'{zs[0]} [{zs[1].units}]'       
-        # if result.labels is not None:
-        #     if len(result.labels) == 2:
-        #         xlabel, ylabel = result.labels[:2]
-        #     else:
-        #         xlabel, ylabel, zlabel = result.labels[:3]
-        # fmt = result.plot_fmt
         zmin, zmax = np.nanmin(zs[1]), np.nanmax(zs[1])
+        self.rotate_widget.show()
         if self.get_opt('pyqtgraph'):
             self.pyqt_splitter.show()
             self.pyqt_imview.show()
-            self.plot_2d_pg(xs, ys, zs, xlabel, ylabel, zlabel)
+            self.plot_2d_pg(xs, ys, zs, xlabel, ylabel, zlabel, angle=angle)
         else:
             self.toolbar.show()
             self.canvas.show()
-            self.plot_2d_mpl(xs, ys, zs, xlabel, ylabel, zlabel, vmin=zmin, vmax=zmax, cmap=cmap)
+            self.slider = self.plot_2d_mpl(xs, ys, zs, xlabel, ylabel, zlabel,
+                                vmin=zmin, vmax=zmax, cmap=cmap, angle=angle, slice_state=slice_state)
 
-    def plot_2d_pg(self, xs, ys, zs, xlabel, ylabel, zlabel):
+    def plot_2d_pg(self, xs, ys, zs, xlabel, ylabel, zlabel, angle=0):
         pos = np.nanmin(xs[1][0].magnitude), np.nanmin(ys[1][0].magnitude)
         scale = np.ptp(xs[1].magnitude) / zs[1].shape[0], np.ptp(ys[1].magnitude) / zs[1].shape[1]
-        # scale = (float(np.max(xs[1].magnitude) - np.min(xs[1]).magnitude) / zs[1].shape[0],
-        #         float(ys[1][-1].magnitude - ys[1][0].magnitude) / zs[1].shape[1])
-        z = zs[1].magnitude.T
-        #z[np.isnan(z)] = np.nanmean(z)
+        z = rotate(zs[1].magnitude.T, angle, cval=np.nanmin(zs[1].magnitude))
         self.pyqt_imview.setImage(z, pos=pos, scale=scale)
         self.pyqt_imview.setLabels(xlabel=xlabel, ylabel=ylabel, zlabel=zlabel)
         self.pyqt_imview.autoRange()
+        self.pyqt_imview.set_histogram(self.get_opt('histogram'))
+        self.exp_data = {d[0]: {'array': d[1].magnitude, 'unit': str(d[1].units)} for d in (xs, ys)}
+        self.exp_data[zs[0]] = {'array': z, 'unit': str(zs[1].units)}
 
-    def plot_2d_mpl(self, xs, ys, zs, xlabel, ylabel, zlabel, cmap=None, **kwargs):
-        axes = self.fig.add_subplot(111)
-        axes.set_xlabel(xlabel)
-        axes.set_ylabel(ylabel)
-        axes.set_aspect('equal')
-        # if fmt == 'matrix':
-        #     plot_matrix(zs, axes)
-        #     return
-        #dx = xs[1][1] - xs[1][0]
-        #dy = ys[1][1] - ys[1][0]
-        #extent = xs[1][0] - dx/2, xs[1][-1] + dx/2, ys[1][0] - dy/2, ys[1][-1] + dy/2
-        #norm = colors.Normalize()
-        #norm.autoscale(np.ma.masked_invalid(zs[1].magnitude))
-        im = axes.pcolormesh(xs[1], ys[1], zs[1].magnitude, cmap=cmap, **kwargs)
-        # if self.get_opt('contour'):
-        #     im = axes.contour(xs[1], ys[1], np.ma.masked_invalid(zs[1]), cmap=cmap, norm=norm)
-        cbar = self.fig.colorbar(im)
-        cbar.set_label(zlabel)
-        plt.tight_layout()
-
-    # def add_lines_mpl(self, vlines, hlines):
-    #     ax = self.fig.gca()
-    #     for xval in vlines:
-    #         ax.axvline(xval, c='k', ls='--')
-    #     for yval in hlines:
-    #         ax.axhline(yval, c='k', ls='--')
+    def plot_2d_mpl(self, xs, ys, zs, xlabel, ylabel, zlabel, cmap=None, angle=0, slice_state=None, **kwargs):
+        if slice_state is None:
+            plt.rcParams.update({'font.size': 14})
+            self.fig.subplots_adjust(top=0.9, bottom=0.15, left=0.0, right=0.85, hspace=0.0, wspace=0)
+            ax = self.fig.add_subplot(111)
+            ax.set_xlabel(xlabel)
+            ax.set_ylabel(ylabel)
+            x0, y0 = np.mean(xs[1].magnitude), np.mean(ys[1].magnitude)
+            tr = transforms.Affine2D().rotate_deg_around(x0, y0, angle)
+            im = ax.pcolormesh(xs[1], ys[1], zs[1].magnitude, cmap=cmap,
+                                transform=(tr + ax.transData), **kwargs)
+            cbar = self.fig.colorbar(im)
+            cbar.set_label(zlabel)
+            ax.set_aspect('equal')
+            z = rotate(zs[1].magnitude.T, angle, cval=np.nan)
+            x = np.linspace(*ax.get_xlim(), z.shape[1])
+            y = np.linspace(*ax.get_ylim(), z.shape[0])
+            self.exp_data = {
+                xs[0]: {'array': x, 'unit': str(xs[1].units)},
+                ys[0]: {'array': y, 'unit': str(ys[1].units)},
+                zs[0]: {'array': z, 'unit': str(zs[1].units)}
+            }
+        else:
+            plt.rcParams.update({'font.size': 10})
+            self.fig.subplots_adjust(top=0.9, bottom=0.05, left=0.0, right=1.0, hspace=0.5, wspace=0.0)
+            ax0 = plt.subplot2grid((12,12), (0,2), colspan=6, rowspan=5, fig=self.fig)
+            ax0.set_xlabel(xlabel)
+            ax0.set_ylabel(ylabel)
+            x0, y0 = np.mean(xs[1].magnitude), np.mean(ys[1].magnitude)
+            tr = transforms.Affine2D().rotate_deg_around(x0, y0, angle)
+            im = ax0.pcolormesh(xs[1], ys[1], zs[1].magnitude, cmap=cmap,
+                                transform=(tr + ax0.transData), **kwargs)
+            cbar = self.fig.colorbar(im)
+            cbar.set_label(zlabel)
+            ax0.set_aspect('equal')
+            ax1 = plt.subplot2grid((12,12), (7,2), colspan=8, rowspan=5, fig=self.fig)
+            ax1.grid(self.get_opt('grid'))
+            xlab = xlabel if slice_state == 'x' else ylabel
+            label = zlabel.split(' ')[:1] + [''.join(zlabel.split(' ')[1:])]
+            ylab = '\n'.join(label)
+            if slice_state == 'x':
+                line, = ax1.plot(xs[1].magnitude, zs[1].magnitude[:,0], lw=3)
+                cut = ax0.axhline(y=ax0.get_ylim()[0], color='k', alpha=0.8, lw=2)
+            else:
+                line, = ax1.plot(ys[1].magnitude, zs[1].magnitude[0,:], lw=3)
+                cut = ax0.axvline(x=ax0.get_xlim()[0], color='k', alpha=0.8, lw=2)
+            ax1.set_xlabel(xlab)
+            ax1.set_ylabel(ylab)
+            divider = make_axes_locatable(ax1)
+            ax_slider = divider.append_axes('bottom', size='15%', pad=0.45)
+            idx_label = 'y' if slice_state == 'x' else 'x'
+            idx = 1 if slice_state == 'x' else 0
+            slider = Slider(ax_slider, f'{idx_label} index', 0, zs[1].shape[idx],
+                            valinit=0, valstep=1, valfmt='%i')
+            z = rotate(zs[1].magnitude.T, angle, cval=np.nan)
+            x = np.linspace(*ax0.get_xlim(), z.shape[1])
+            y = np.linspace(*ax0.get_ylim(), z.shape[0])
+            self.fig.tight_layout()
+            def update(val):
+                i = int(slider.val) - 1
+                z = rotate(zs[1].magnitude.T, angle, cval=np.nan)
+                x = np.linspace(*ax0.get_xlim(), z.shape[1])
+                y = np.linspace(*ax0.get_ylim(), z.shape[0])
+                if slice_state == 'x':
+                    slider.valmax = len(y)
+                    line.set_data(x, z[:,i])
+                    ax1.set_xlim(np.nanmin(x), np.nanmax(x))
+                    cut.set_ydata(2*[y[i]])
+                else:
+                    slider.valmax = len(x)
+                    line.set_data(y, z[i,:])
+                    ax1.set_xlim(np.nanmin(y), np.nanmax(y))
+                    cut.set_xdata(2*[x[i]])
+                slider.ax.set_xlim(slider.valmin,slider.valmax)
+                ydata = line.get_ydata()
+                vmin, vmax = np.nanmin(ydata), np.nanmax(ydata)
+                margin = 0.1
+                rng = vmax - vmin
+                vmin = vmin - margin * rng
+                vmax = vmax + margin * rng
+                try:
+                    ax1.set_ylim(vmin, vmax)
+                except ValueError:
+                    pass
+                self.canvas.draw()
+            slider.on_changed(update)
+            self.exp_data = {
+                xs[0]: {'array': x, 'unit': str(xs[1].units)},
+                ys[0]: {'array': y, 'unit': str(ys[1].units)},
+                zs[0]: {'array': z, 'unit': str(zs[1].units)}
+            }
+            if slice_state == 'x':
+                self.exp_data['slice'] = {
+                    xs[0]: {'array': line.get_xdata(), 'unit': str(xs[1].units)},
+                    zs[0]: {'array': line.get_ydata(), 'unit': str(zs[1].units)},
+                    'index': int(slider.val) - 1
+                }
+            elif slice_state == 'y':
+                self.exp_data['slice'] = {
+                    ys[0]: {'array': line.get_xdata(), 'unit': str(ys[1].units)},
+                    zs[0]: {'array': line.get_ydata(), 'unit': str(zs[1].units)},
+                    'index': int(slider.val) - 1
+                }              
+            return slider
 
     def replot(self):
         if self.current_data is not None:
             xs, ys, zs = self.current_data[:]
             name = ys[0] if zs is None else zs[0]
-            self.fig_title = f'{self.dataset.location} [{name}]'
+            self.fig_title = f"{self.dataset.metadata['location']} [{name}]"
             self.subtract_background()
-            #self.plot_arrays(xs, ys, zs=zs, title=self.fig_title)
-            # self.fig.tight_layout()
-            # self.fig.subplots_adjust(top=0.90, bottom=0.11)
-
-    # def launch_fit_dialog(self):
-    #     fit_data = self.current_result
-    #     if self.get_opt('threshold'):
-    #         fit_data = fit_data.threshold()
-    #     ds = fit_data.axis_mean().squeeze()
-    #     fit_data_arr = ds.data.real
-    #     x_data = ds.ax_data[0]
-    #     dialog = FitDialog(fit_data_arr, x_data=x_data)
-    #     dialog.exec_()
 
     def set_slice(self, idx=None):
         if isinstance(idx, QtWidgets.QRadioButton):
@@ -446,8 +412,7 @@ class PlotWidget(QtWidgets.QWidget):
             idx = self.slice_radio.checkedId()
         self.slice_state = idx
         self.update_slice()
-        # if self.get_opt('multiline'):
-        #     self.replot()
+        self.replot()
 
     def update_slice(self):
         if self.slice_state == 1:
@@ -518,15 +483,40 @@ class PlotWidget(QtWidgets.QWidget):
                 data = np.reshape(zs[1].magnitude, (-1, 1))
                 z = np.column_stack((x, y, np.ones_like(x)))
                 plane, _, _, _ = lstsq(z, data)
-                # plane = [plane[0] * zs[1].units / xs[1].units,
-                #             plane[1] * zs[1].units / ys[1].units,
-                #             plane[2] * zs[1].units]
                 zs = [zs[0], zs[1] - zs[1].units * (plane[0] * X + plane[1] * Y + plane[2])]
-        name = ys[0] if zs is None else zs[0]
-        self.fig_title = f'{self.dataset.location} [{name}]'
+        #name = ys[0] if zs is None else zs[0]
+        #self.fig_title = f"{self.dataset.metadata['location']} [{name}]"
         self.plot_arrays(xs, ys, zs=zs, title=self.fig_title)
-        self.fig.tight_layout()
-        self.fig.subplots_adjust(top=0.9, bottom=0.11)
+        #self.fig.tight_layout()
+        #self.fig.subplots_adjust(top=0.9, bottom=0.11)
+
+    def export_mpl(self, dpi=300):
+        name = self.fig_title.split('/')[-1].replace(' ', '')
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Export matplotlib', name,
+                                                    'PNG Image (*.png);;JPEG Image (*.jpg)')
+        self.fig.savefig(path, dpi=dpi)
+
+    def export_pg(self, width=1200):
+        name = self.fig_title.split('/')[-1].replace(' ', '')
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Export pyqtgraph', name,
+                                                    'PNG Image (*.png);;JPEG Image (*.jpg)')
+        plot = self.pyqt_plot.plotItem if self.pyqt_plot.isVisible() else self.pyqt_imview.scene
+        exporter = pg.exporters.ImageExporter(plot)
+        exporter.parameters()['width'] = width
+        exporter.export(path)
+
+    def export_data(self):
+        if not self.exp_data:
+            return
+        name = self.fig_title.split('/')[-1].replace(' ', '')
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Export current data', name,
+                                                    'MAT File (*.mat);;HDF5 (*.h5)')
+        if path.endswith('mat'):
+            io.savemat(path, self.exp_data)
+        elif path.endswith('h5'):
+            with h5py.File(path) as df:
+                set_h5_attrs(df, self.exp_data)
+
 
     def _subtract_line_by_line(self, zdata, axis, func):
         if axis: # y
@@ -541,15 +531,6 @@ class PlotWidget(QtWidgets.QWidget):
         slope, offset = np.polyfit(x, y, 1)
         return y - (slope * x + offset)
 
-    def export_pg(self, width=1200):
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Export pyqtgraph', 'pyqtgraph',
-                                                    'PNG Image (*.png);;JPEG Image (*.jpg)')
-        plot = self.pyqt_plot.plotItem if self.pyqt_plot.isVisible() else self.pyqt_imview.scene
-        exporter = pg.exporters.ImageExporter(plot)
-        print(exporter.parameters())
-        exporter.parameters()['width'] = width
-        exporter.export(path)
-
 class DataSetPlotter(PlotWidget):
     def __init__(self, dataset=None, parent=None, init_plot=False):
         super(DataSetPlotter, self).__init__(parent=parent)
@@ -561,7 +542,7 @@ class DataSetPlotter(PlotWidget):
         arrays_widget = QtWidgets.QGroupBox('Arrays')
         arrays_layout = QtWidgets.QHBoxLayout(arrays_widget)
         arrays_widget.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum)
-        self.selector = ItemComboBox()
+        self.selector = QtWidgets.QComboBox()
         arrays_layout.addWidget(self.selector)
         self.option_layout.insertWidget(0, arrays_widget)
         self.selector.currentIndexChanged.connect(self.set_plot)
@@ -571,8 +552,14 @@ class DataSetPlotter(PlotWidget):
         self.xy_units = QtWidgets.QLineEdit()
         self.xy_units.setText('Enter length unit')
         self.xy_units.setDisabled(True)
-        arrays_layout.addWidget(self.xy_units_box)
-        arrays_layout.addWidget(self.xy_units)
+        xy_units_widget = QtWidgets.QWidget()
+        xy_units_layout = QtWidgets.QVBoxLayout()
+        xy_units_widget.setLayout(xy_units_layout)
+        xy_units_layout.addWidget(self.xy_units_box)
+        xy_units_layout.addWidget(self.xy_units)
+        #arrays_layout.addWidget(self.xy_units_box)
+        # arrays_layout.addWidget(self.xy_units)
+        arrays_layout.addWidget(xy_units_widget)
         self.xy_units_box.stateChanged.connect(self.update_xy_units)
         self.xy_units.returnPressed.connect(self.update)
 
@@ -600,13 +587,15 @@ class DataSetPlotter(PlotWidget):
                 items.append(name)
                 self.selector.addItem(name)
         self._disable_update = False
-        if items:
-            last_text = items[0]
-        try:
-            self.selector.go_to_item(last_text)
-            self.set_plot_from_name(last_text)
-        except ValueError:
-            pass
+        self.selector.setCurrentIndex(0)
+        self.set_plot(0)
+        # if items:
+        #     last_text = items[0]
+        # try:
+        #     self.selector.go_to_item(last_text)
+        #     self.set_plot_from_name(last_text)
+        # except ValueError:
+        #     pass
 
     def set_plot(self, idx):
         if self._disable_update:
@@ -624,11 +613,11 @@ class DataSetPlotter(PlotWidget):
         elif len(self.indep_vars) == 2:
             xs, ys = ([var, self.arrays[var]] for var in self.indep_vars)
             z = self.arrays[name]
-            z[np.isnan(z)] = np.nanmean(z) * z.units
+            z[np.isnan(z)] = np.nanmin(z) * z.units
             zs = [name, z]
         title = ''
         if self.dataset is not None:
-            title = f'{self.dataset.location} [{name}]'
+            title = f"{self.dataset.metadata['location']} [{name}]"
         self.current_data = [xs, ys, zs]
         self.plot_arrays(xs, ys, zs, title)
         self.subtract_background()
@@ -644,7 +633,9 @@ class DataSetPlotter(PlotWidget):
         else:
             self.xy_units.setText('um')
             self.xy_units.setDisabled(False)
-        self.update()
+        idx = self.selector.currentIndex()
+        self.update(idx=idx)
+        self.selector.setCurrentIndex(idx)
 
     def update_dataset_state(self):
         self.dataset_state[str(self.selector.currentText())] = self.get_all_opts()
@@ -661,21 +652,17 @@ class DataSetPlotter(PlotWidget):
         self.default_dataset = state.pop('default_dataset', '')
         self.dataset_state = state
 
-    def update(self, dataset=None):
+    def update(self, dataset=None, idx=0):
         self.dataset = dataset or self.dataset
         self.get_arrays()
         self.backsub_radio.button(0).setChecked(True)
-        self.set_plot(0)
+        self.set_plot(idx)
 
 
 class ImageView(pg.ImageView):
     def __init__(self, **kwargs):
         kwargs['view'] = pg.PlotItem(labels=kwargs.pop('labels', None))
         super().__init__(**kwargs)
-        # colormap = cm.get_cmap('viridis')
-        # colormap._init()
-        # self.lut = (colormap._lut[:-3] * 255).astype(np.uint8)  # Convert matplotlib colormap from 0-1 to 0-255 for Qt
-        # self.getImageItem().setLookupTable(self.lut)
         self.view.setAspectLocked(lock=True)
         self.view.invertY(False)
         self.set_histogram(True)
@@ -684,7 +671,6 @@ class ImageView(pg.ImageView):
         histogram_action.triggered.connect(self.set_histogram)
         self.scene.contextMenu.append(histogram_action)
         self.ui.histogram.gradient.loadPreset('grey')
-        #self.ui.histogram.gradient.restoreState(Gradients['viridis'])
 
     def setLabels(self, xlabel='X', ylabel='Y', zlabel='Z'):
         self.view.setLabels(bottom=(xlabel,), left=(ylabel,))
@@ -802,7 +788,7 @@ class CrossSectionImageView(ImageView):
             self.connect_signal()
         except RuntimeError:
             logger.warn('Scene not set up, cross section signals not connected')
-
+        self.angle = 0
         self.y_cross_index = 0
         self.x_cross_index = 0
         self.h_cross_section_widget = CrosshairPlotWidget()
@@ -880,6 +866,7 @@ class CrossSectionImageView(ImageView):
             x = self.v_line.getXPos()
         if y is None:
             y = self.h_line.getYPos()
+
         item_coords = self.imageItem.getViewBox().mapFromViewToItem(self.imageItem, QtCore.QPointF(x, y))
         item_x, item_y = item_coords.x(), item_coords.y()
         max_x, max_y = self.imageItem.image.shape
@@ -904,90 +891,15 @@ class CrossSectionImageView(ImageView):
     #         self.hist_plot.setImage(H, pos=(xs[0], ys[0]), scale=(xs[1]-xs[0], ys[1]-ys[0]))
 
     def update_cross_section(self):
-        nx, ny = self.imageItem.image.shape
+        zdata = self.imageItem.image
+        nx, ny = zdata.shape
         x0, y0, xscale, yscale = self._x0, self._y0, self._xscale, self._yscale
         xdata = np.linspace(x0, x0+(xscale*(nx-1)), nx)
         ydata = np.linspace(y0, y0+(yscale*(ny-1)), ny)
-        zval = self.imageItem.image[self.x_cross_index, self.y_cross_index]
-        self.h_cross_section_widget_data.setData(xdata, self.imageItem.image[:, self.y_cross_index])
+        zval = zdata[self.x_cross_index, self.y_cross_index]
+        self.h_cross_section_widget_data.setData(xdata, zdata[:, self.y_cross_index])
         self.h_cross_section_widget.v_line.setPos(xdata[self.x_cross_index])
         self.h_cross_section_widget.h_line.setPos(zval)
-        self.v_cross_section_widget_data.setData(ydata, self.imageItem.image[self.x_cross_index, :])
+        self.v_cross_section_widget_data.setData(ydata, zdata[self.x_cross_index, :])
         self.v_cross_section_widget.v_line.setPos(ydata[self.y_cross_index])
         self.v_cross_section_widget.h_line.setPos(zval)
-
-
-# class SliceWidget(QtWidgets.QWidget):
-#     def __init__(self, data, start_idx, parent=None):
-#         super(SliceWidget, self).__init__(parent=parent)
-#         self.data = data
-#         self.index_box = QtWidgets.QSpinBox(self)
-#         self.slider = QtWidgets.QSlider(Qt.Horizontal, self)
-#         self.label = QtWidgets.QLabel('')
-#         layout = QtWidgets.QHBoxLayout(self)
-#         layout.addWidget(self.index_box)
-#         layout.addWidget(self.label)
-#         layout.addWidget(self.slider)
-#         dims = data.shape
-#         self.slider.setMinimum(0)
-#         self.slider.setMaximum(dims[start_idx]-1)
-#         self.slider.valueChanged.connect(self.update_label)
-#         self.index_box.setMinimum(0)
-#         self.index_box.setMaximum(len(dims) - 1)
-#         self.index_box.valueChanged.connect(self.change_index)
-#         self.index_box.setValue(start_idx)
-#         self.update_label(0)
-#         sp = self.sizePolicy()
-#         sp.setVerticalPolicy(QtWidgets.QSizePolicy.Maximum)
-#         self.setSizePolicy(sp)
-
-#     def change_index(self, val):
-#         self.slider.setMaximum(self.data.shape[val] - 1)
-#         self.slider.setValue(0)
-#         self.update_label(0)
-
-#     def update_label(self, val):
-#         idx = self.index_box.value()
-#         vmax = self.data.shape[idx]
-#         label = f'axis {idx}'
-#         self.label.setText(f'{label} = {ax_val} [{val+1}/{vmax}]')
-
-class SliceWidget(QtWidgets.QWidget):
-    def __init__(self, result, start_idx, parent=None):
-        super(SliceWidget, self).__init__(parent=parent)
-        self.result = result
-        self.index_box = QtWidgets.QSpinBox(self)
-        self.slider = QtWidgets.QSlider(Qt.Horizontal, self)
-        self.label = QtWidgets.QLabel('')
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.addWidget(self.index_box)
-        layout.addWidget(self.label)
-        layout.addWidget(self.slider)
-        dims = result.shape
-        self.slider.setMinimum(0)
-        self.slider.setMaximum(dims[start_idx]-1)
-        self.slider.valueChanged.connect(self.update_label)
-        self.index_box.setMinimum(0)
-        self.index_box.setMaximum(len(dims) - 1)
-        self.index_box.valueChanged.connect(self.change_index)
-        self.index_box.setValue(start_idx)
-        self.update_label(0)
-        sp = self.sizePolicy()
-        sp.setVerticalPolicy(QtWidgets.QSizePolicy.Maximum)
-        self.setSizePolicy(sp)
-
-    def change_index(self, val):
-        self.slider.setMaximum(self.result.shape[val] - 1)
-        self.slider.setValue(0)
-        self.update_label(0)
-
-    def update_label(self, val):
-        idx = self.index_box.value()
-        vmax = self.result.shape[idx]
-        label = 'Axis %d' % idx
-        if self.result.labels is not None:
-            label = self.result.labels[idx]
-        ax_val = val
-        if self.result.ax_data is not None:
-            ax_val = self.result.ax_data[idx][val]
-        self.label.setText('%s = %s [%s/%s]' % (label, ax_val, val+1, vmax))

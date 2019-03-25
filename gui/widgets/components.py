@@ -1,4 +1,4 @@
-from qt import QtGui, QtWidgets
+from ..qt import QtGui, QtWidgets
 
 class ItemComboBox(QtWidgets.QComboBox):
     def go_to_item(self, item):

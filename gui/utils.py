@@ -16,6 +16,19 @@ def load_json_ordered(filename: str) -> OrderedDict:
         odict = json.load(f, object_pairs_hook=OrderedDict)
     return odict
 
+def set_h5_attrs(g, kwargs):
+    """Adds data to HDF5 group `g` from dict `kwargs`.
+    """
+    for name, value in kwargs.items():
+        if isinstance(value, dict):
+            sub_g = g.create_group(name)
+            set_h5_attrs(sub_g, value)
+        else:
+            if isinstance(value, np.ndarray):
+                g.create_dataset(name, data=value)
+            else:
+                g.attrs[name] = value
+
 def make_scan_vectors(scan_params: Dict[str, Any], ureg: Any) -> Dict[str, Sequence[float]]:
     """Creates x and y vectors for given scan parameters.
 

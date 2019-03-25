@@ -1,9 +1,15 @@
 import os
 import sys
-from qt import QtGui, QtWidgets, QtCore, Qt
+from .qt import QtGui, QtWidgets, QtCore, Qt
 import matplotlib.pyplot as plt
-from widgets import (QIPythonWidget, MetaWidget, DataSetBrowser, DataSetPlotter)
-from utils import load_json_ordered
+from .widgets import (QIPythonWidget, MetaWidget, DataSetBrowser, DataSetPlotter)
+from .utils import load_json_ordered
+import warnings
+warnings.filterwarnings('ignore', message='The unit of the quantity is stripped')
+warnings.filterwarnings('ignore', message='tight_layout')
+warnings.filterwarnings('ignore', message='Tight layout not applied.')
+warnings.filterwarnings('ignore', message='All-NaN slice encountered')
+warnings.filterwarnings('ignore', message='Attempting to set identical bottom==top results')
 
 app = QtWidgets.QApplication([])
 
@@ -40,15 +46,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.plotter_dock = self.add_dock(self.dataset_plotter, 'DataSetPlotter', 'Right')
         self.tabifyDockWidget(self.snapshot_dock, self.meta_dock)
 
-        for _, action in self.dataset_plotter.opt_checks.items():
-            self.plot_menu.addAction(action)
-
-        self.plot_menu.addAction('Export matplotlib...', self.dataset_plotter.toolbar.save_figure,
-                                    QtGui.QKeySequence('Ctrl+S'))
-        self.plot_menu.addAction('Export pyqtgraph...', self.dataset_plotter.export_pg,
-                                    QtGui.QKeySequence('Ctrl+Shift+S'))                
+        self.plot_menu.addAction('Export matplotlib...', self.dataset_plotter.export_mpl,
+                                    QtGui.QKeySequence('Ctrl+P'))
+        # self.plot_menu.addAction('Export pyqtgraph...', self.dataset_plotter.export_pg,
+        #                             QtGui.QKeySequence('Ctrl+Shift+P'))                
         self.file_menu.addAction('Select directory...', self.dataset_browser.select_from_dialog,
                                     QtGui.QKeySequence('Ctrl+O'))
+        self.file_menu.addAction('Export current data...', self.dataset_plotter.export_data,
+                                    QtGui.QKeySequence('Ctrl+S'))
         
 
     def load_dataset(self):

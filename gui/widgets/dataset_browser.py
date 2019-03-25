@@ -1,15 +1,15 @@
 import os
-from qt import *
+from ..qt import *
 import qcodes as qc
-from qjsonmodel import QJsonModel
+from ..qjsonmodel import QJsonModel
 from .plots import DataSetPlotter
-from utils import load_json_ordered
+from ..utils import load_json_ordered
 
 __all__ = ['DataSetBrowser']
 
-class DataSetBrowser(QtWidgets.QSplitter):
+class DataSetBrowser(QtWidgets.QWidget):
     def __init__(self, parent=None):
-        super(DataSetBrowser, self).__init__(Qt.Horizontal, parent=parent)
+        super().__init__(parent=parent)
         self.directory = None
         self.date_selector = QtWidgets.QComboBox(parent=self)
         self.dataset_selector = QtWidgets.QListView(parent=self)
@@ -17,16 +17,22 @@ class DataSetBrowser(QtWidgets.QSplitter):
         self.dataset_selector.setModel(self.dataset_list)
         self.dataset_selector.setIconSize(QtCore.QSize(150, 150))
 
+        button_widget = QtWidgets.QWidget()
+        button_layout = QtWidgets.QHBoxLayout()
+        button_widget.setLayout(button_layout)
         select_dir_button = QtWidgets.QPushButton('Select directory')
         select_dir_button.clicked.connect(self.select_from_dialog)
         refresh_button = QtWidgets.QPushButton('Refresh')
-        widget = QtWidgets.QWidget(parent=self)
-        selector_layout = QtWidgets.QVBoxLayout(widget)
-        selector_layout.addWidget(select_dir_button)
-        selector_layout.addWidget(refresh_button)
+        button_layout.addWidget(select_dir_button)
+        button_layout.addWidget(refresh_button)
+        #widget = QtWidgets.QWidget(parent=self)
+        selector_layout = QtWidgets.QVBoxLayout(self)
+        selector_layout.addWidget(button_widget)
+        # selector_layout.addWidget(select_dir_button)
+        # selector_layout.addWidget(refresh_button)
         selector_layout.addWidget(self.date_selector)
         selector_layout.addWidget(self.dataset_selector)
-        self.addWidget(widget)
+        #self.addWidget(widget)
 
         self.date_selector.currentIndexChanged.connect(self.set_available_datasets)
         refresh_button.clicked.connect(self.set_available_dates)
