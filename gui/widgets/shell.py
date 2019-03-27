@@ -10,7 +10,7 @@ class QJupyterWidget(RichIPythonWidget):
     """Convenience class for a live Jupyter console widget.
     """
     def __init__(self,custom_banner=None,*args,**kwargs):
-        if customBanner!=None:
+        if custom_banner is not None:
             self.banner = custom_banner
         super().__init__(*args,**kwargs)
         self.kernel_manager = kernel_manager = QtInProcessKernelManager()
@@ -26,7 +26,7 @@ class QJupyterWidget(RichIPythonWidget):
         self.exit_requested.connect(stop)
 
     def push_variables(self, variable_dict):
-        """ Given a dictionary containing name / value pairs,
+        """Given a dictionary containing name / value pairs,
         push those variables to the Jupyter console widget.
         """
         self.kernel_manager.kernel.shell.push(variable_dict)
