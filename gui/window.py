@@ -2,7 +2,7 @@ import os
 import sys
 from .qt import QtGui, QtWidgets, QtCore, Qt
 import matplotlib.pyplot as plt
-from .widgets import (QIPythonWidget, MetaWidget, DataSetBrowser, DataSetPlotter)
+from .widgets import QJupyterWidget, MetaWidget, DataSetBrowser, DataSetPlotter
 from .utils import load_json_ordered
 import warnings
 warnings.filterwarnings('ignore', message='The unit of the quantity is stripped')
@@ -23,7 +23,7 @@ class MainWindow(QtWidgets.QMainWindow):
         icon_path = os.path.join(os.path.dirname(__file__), 'icon.png')
         app.setWindowIcon(QtGui.QIcon(icon_path))
 
-        self.shell = QIPythonWidget()
+        self.shell = QJupyterWidget()
         self.station_snap = MetaWidget()
         self.measurement_meta = MetaWidget()
         self.dataset_browser = DataSetBrowser()
@@ -32,7 +32,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dataset_plotter = DataSetPlotter()
 
         import numpy
-        self.shell.pushVariables({
+        self.shell.push_variables({
             'np': numpy,
             'plt': plt
             })
@@ -86,7 +86,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.station_snap.load_meta(data=snap)
         self.measurement_meta.load_meta(data=meta)
         self.dataset = dataset
-        self.shell.pushVariables({'dataset': self.dataset})
+        self.shell.push_variables({'dataset': self.dataset})
 
     def update_dataset_plot(self):
         """Get dataset and update plot.
@@ -98,7 +98,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.dataset is None or 'snapshot.json' not in os.listdir(self.dataset.location):
             return
         self.dataset_plotter.update(self.dataset)
-        self.shell.pushVariables({'arrays': self.dataset_plotter.arrays})
+        self.shell.push_variables({'arrays': self.dataset_plotter.arrays})
 
 def main():
     app = QtWidgets.QApplication([])
