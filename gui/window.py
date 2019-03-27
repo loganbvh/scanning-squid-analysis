@@ -14,10 +14,12 @@ warnings.filterwarnings('ignore', message='Attempting to set identical bottom==t
 app = QtWidgets.QApplication([])
 
 class MainWindow(QtWidgets.QMainWindow):
+    """Main window for scanning-squid-analysis gui.
+    """
     def __init__(self):
         super().__init__()
         self.dataset = None
-        self.setWindowTitle('scanning-squid data viewer')
+        self.setWindowTitle('scanning-squid')
         icon_path = os.path.join(os.path.dirname(__file__), 'icon.png')
         app.setWindowIcon(QtGui.QIcon(icon_path))
 
@@ -36,8 +38,8 @@ class MainWindow(QtWidgets.QMainWindow):
             })
 
         self.file_menu = self.menuBar().addMenu('File')
-        self.view_menu = self.menuBar().addMenu('View')
         self.plot_menu = self.menuBar().addMenu('Plot')
+        self.view_menu = self.menuBar().addMenu('View')
 
         self.dataset_dock = self.add_dock(self.dataset_browser, 'DataSet Browser', 'Left')
         self.snapshot_dock = self.add_dock(self.station_snap, 'Microscope Snapshot', 'Left')
@@ -48,19 +50,34 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.plot_menu.addAction('Export matplotlib...', self.dataset_plotter.export_mpl,
                                     QtGui.QKeySequence('Ctrl+P'))
-        # self.plot_menu.addAction('Export pyqtgraph...', self.dataset_plotter.export_pg,
-        #                             QtGui.QKeySequence('Ctrl+Shift+P'))                
+        self.plot_menu.addAction('Export pyqtgraph...', self.dataset_plotter.export_qt,
+                                    QtGui.QKeySequence('Ctrl+Shift+P'))                
         self.file_menu.addAction('Select directory...', self.dataset_browser.select_from_dialog,
                                     QtGui.QKeySequence('Ctrl+O'))
         self.file_menu.addAction('Export current data...', self.dataset_plotter.export_data,
                                     QtGui.QKeySequence('Ctrl+S'))
         
+    def add_dock(self, widget, name, location, min_width=None):
+        """Add a QDockWidget to the main window.
+        Args:
+            widget (QWidget): Widget to add to dock.
+            name (str): Name to give dock.
+            location (str): Where to put dock, in ('Left', 'Right', 'Top', 'Bottom').
+            min_width (optional, int): Minimum width of the dock. Default: None.
+        """
+        dock = QtWidgets.QDockWidget(name)
+        dock.setWidget(widget)
+        self.view_menu.addAction(dock.toggleViewAction())
+        loc_const = getattr(Qt, f'{location}DockWidgetArea')
+        self.addDockWidget(loc_const, dock)
+        if min_width is not None:
+            dock.setMinimumWidth(min_width)
+        return dock
 
     def load_dataset(self):
+        """Get dataset selected in self.dataset_browser.
+        """
         dataset = self.dataset_browser.get_dataset()
-        if isinstance(dataset, str):
-            self.dataset = dataset
-            return
         if 'snapshot.json' not in os.listdir(dataset.location):
             return
         path = os.path.join(dataset.location, 'snapshot.json')
@@ -68,11 +85,12 @@ class MainWindow(QtWidgets.QMainWindow):
         snap = meta.pop('station')
         self.station_snap.load_meta(data=snap)
         self.measurement_meta.load_meta(data=meta)
-        self.shell.pushVariables({'dataset': dataset})
         self.dataset = dataset
         self.shell.pushVariables({'dataset': self.dataset})
 
     def update_dataset_plot(self):
+        """Get dataset and update plot.
+        """
         self.load_dataset()
         if isinstance(self.dataset, str):
             self.dataset_plotter.update(self.dataset)
@@ -82,26 +100,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dataset_plotter.update(self.dataset)
         self.shell.pushVariables({'arrays': self.dataset_plotter.arrays})
 
-    def add_dock(self, widget, name, location, min_width=None):
-        dock = QtWidgets.QDockWidget(name)
-        dock.setWidget(widget)
-        self.view_menu.addAction(dock.toggleViewAction())
-        loc_const = getattr(Qt, location+'DockWidgetArea')
-        self.addDockWidget(loc_const, dock)
-        if min_width is not None:
-            dock.setMinimumWidth(min_width)
-        return dock
-
 def main():
     app = QtWidgets.QApplication([])
     win = MainWindow()
     win.showMaximized()
-
-    def test():
-        pass
-
     app.lastWindowClosed.connect(sys.exit)
-    QtCore.QTimer.singleShot(100, test)
     app.exec_()
     
 if __name__ == '__main__':

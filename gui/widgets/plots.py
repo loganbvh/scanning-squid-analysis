@@ -222,13 +222,6 @@ class PlotWidget(QtWidgets.QWidget):
         """
         return bool(self.opt_checks[optname].isChecked())
 
-    # def get_all_opts(self):
-    #     return {name: self.get_opt(name) for name in self.opt_checks}
-
-    # def set_opts(self, opts):
-    #     for name, val in opts.items():
-    #         self.opt_checks[name].setChecked(val)
-
     def plot_arrays(self, xs, ys, zs=None, title=''):
         """Plots data based on dimension and all user-selected options, transforms, etc.
         Args:
@@ -286,6 +279,8 @@ class PlotWidget(QtWidgets.QWidget):
         ymin, ymax = np.min(ys[1]), np.max(ys[1])
         if self.get_opt('pyqtgraph'):
             self.pyqt_splitter.show()
+            self.pyqt_splitter.setStretchFactor(0, 1.5)
+            self.pyqt_splitter.setStretchFactor(1,1)
             self.pyqt_plot.show()
             self.plot_1d_qt(xs, ys, xlabel, ylabel, label)
         else:
