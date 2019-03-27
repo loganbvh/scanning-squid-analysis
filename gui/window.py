@@ -58,6 +58,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def load_dataset(self):
         dataset = self.dataset_browser.get_dataset()
+        if isinstance(dataset, str):
+            self.dataset = dataset
+            return
         if 'snapshot.json' not in os.listdir(dataset.location):
             return
         path = os.path.join(dataset.location, 'snapshot.json')
@@ -71,6 +74,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def update_dataset_plot(self):
         self.load_dataset()
+        if isinstance(self.dataset, str):
+            self.dataset_plotter.update(self.dataset)
+            return
         if self.dataset is None or 'snapshot.json' not in os.listdir(self.dataset.location):
             return
         self.dataset_plotter.update(self.dataset)

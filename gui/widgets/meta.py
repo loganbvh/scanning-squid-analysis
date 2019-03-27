@@ -2,10 +2,9 @@ from ..qjsonmodel import QJsonModel
 from ..utils import load_json_ordered
 from ..qt import *
 
-
-__all__ = ['MetaWidget']
-
 class MetaWidget(QtWidgets.QTreeView):
+    """Widget for inspecting dataset metadata.
+    """
     def __init__(self, path=None, data=None):
         super(MetaWidget, self).__init__()
         self.setContextMenuPolicy(Qt.ActionsContextMenu)
@@ -20,6 +19,8 @@ class MetaWidget(QtWidgets.QTreeView):
         self.setHeaderHidden(True)
 
     def load_meta(self, path=None, data=None):
+        """Loads metadata stored in json file at `path`.
+        """
         assert not (path and data), 'path and data cannot both be None.'
         if path is not None:
             self.model.load(load_json_ordered(path))

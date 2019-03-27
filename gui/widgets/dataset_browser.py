@@ -5,9 +5,9 @@ from ..qjsonmodel import QJsonModel
 from .plots import DataSetPlotter
 from ..utils import load_json_ordered
 
-__all__ = ['DataSetBrowser']
-
 class DataSetBrowser(QtWidgets.QWidget):
+    """Widget for selecting dates and datasets from a directory.
+    """
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.directory = None
@@ -25,23 +25,23 @@ class DataSetBrowser(QtWidgets.QWidget):
         refresh_button = QtWidgets.QPushButton('Refresh')
         button_layout.addWidget(select_dir_button)
         button_layout.addWidget(refresh_button)
-        #widget = QtWidgets.QWidget(parent=self)
         selector_layout = QtWidgets.QVBoxLayout(self)
         selector_layout.addWidget(button_widget)
-        # selector_layout.addWidget(select_dir_button)
-        # selector_layout.addWidget(refresh_button)
         selector_layout.addWidget(self.date_selector)
         selector_layout.addWidget(self.dataset_selector)
-        #self.addWidget(widget)
 
         self.date_selector.currentIndexChanged.connect(self.set_available_datasets)
         refresh_button.clicked.connect(self.set_available_dates)
 
     def select_from_dialog(self):
+        """Update self.directory based on directory selected by user.
+        """
         self.directory = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select data directory')
         self.set_available_dates()
 
     def set_available_dates(self):
+        """Populate self.date_selector combo box with available date directories in self.directory.
+        """
         self.date_selector.clear()
         if not os.path.isdir(self.directory):
             return
@@ -53,13 +53,20 @@ class DataSetBrowser(QtWidgets.QWidget):
                 self.date_selector.addItem(item)
 
     def get_dataset(self):
+        """Try to load the current selected dataset. If it can't be loaded, returns None.
+        """
         self.dataset_name = self.dataset_selector.currentIndex().data()
         if not self.dataset_name or not self.date_name:
             return None
         fpath = os.path.join(self.directory, self.date_name, self.dataset_name)
-        return qc.load_data(location=fpath)
+        try:
+            return qc.load_data(location=fpath)
+        except:
+            return None
 
     def set_available_datasets(self, index):
+        """Populates self.dataset_list with the available datasets for the currently selected date.
+        """
         self.dataset_list.clear()
         self.date_name = str(self.date_selector.currentText())
         if not self.date_name:

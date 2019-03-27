@@ -1,6 +1,8 @@
 from ..qt import Qt, QtCore, QtWidgets, QtGui
 
 class LabeledSlider(QtWidgets.QWidget):
+    """QSlider with ticks and labels.
+    """
     def __init__(self, minimum, maximum, init, interval=1, orientation=Qt.Horizontal,
             labels=None, parent=None):
         super().__init__(parent=parent)
@@ -107,25 +109,27 @@ class LabeledSlider(QtWidgets.QWidget):
         return
 
 class SliderWidget(QtWidgets.QWidget):
+    """LabeledSlider synced with a spinbox to update/display current slider value.
+    """
     def __init__(self, min, max, init, interval, parent=None):
         super().__init__(parent=parent)
-        self.angle_box = QtWidgets.QSpinBox(self)
+        self.value_box = QtWidgets.QSpinBox(self)
         self.slider = LabeledSlider(min, max, init, interval=interval)
         layout = QtWidgets.QHBoxLayout(self)
-        layout.addWidget(self.angle_box)
+        layout.addWidget(self.value_box)
         layout.addWidget(self.slider)
-        self.slider.slider.valueChanged.connect(self.change_angle)
-        self.angle_box.setMinimum(min)
-        self.angle_box.setMaximum(max)
-        self.angle_box.setValue(init)
-        self.angle_box.setKeyboardTracking(False)
-        self.angle_box.valueChanged.connect(self.change_angle)
-        self.change_angle(init)
+        self.slider.slider.valueChanged.connect(self.update_value)
+        self.value_box.setMinimum(min)
+        self.value_box.setMaximum(max)
+        self.value_box.setValue(init)
+        self.value_box.setKeyboardTracking(False)
+        self.value_box.valueChanged.connect(self.update_value)
+        self.update_value(init)
         sp = self.sizePolicy()
         sp.setVerticalPolicy(QtWidgets.QSizePolicy.Minimum)
         sp.setHorizontalPolicy(QtWidgets.QSizePolicy.MinimumExpanding)
         self.setSizePolicy(sp)
 
-    def change_angle(self, val):
-        self.angle_box.setValue(val)
+    def update_value(self, val):
+        self.value_box.setValue(val)
         self.slider.slider.setValue(val)
