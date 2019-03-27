@@ -7,9 +7,11 @@ except ImportError:
     from IPython.qt.inprocess import QtInProcessKernelManager
 
 class QJupyterWidget(RichIPythonWidget):
-    """ Convenience class for a live IPython console widget. We can replace the standard banner using the customBanner argument"""
-    def __init__(self,customBanner=None,*args,**kwargs):
-        if customBanner!=None: self.banner=customBanner
+    """Convenience class for a live Jupyter console widget.
+    """
+    def __init__(self,custom_banner=None,*args,**kwargs):
+        if customBanner!=None:
+            self.banner = custom_banner
         super().__init__(*args,**kwargs)
         self.kernel_manager = kernel_manager = QtInProcessKernelManager()
         kernel_manager.start_kernel()
