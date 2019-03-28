@@ -29,7 +29,7 @@ Changes:
 
 import json
 from collections import OrderedDict
-from Qt import QtWidgets, QtCore, __binding__
+from .qt import QtWidgets, QtCore
 
 
 class QJsonTreeItem(object):
@@ -175,11 +175,7 @@ class QJsonModel(QtCore.QAbstractItemModel):
             if index.column() == 1:
                 item = index.internalPointer()
                 item.value = str(value)
-
-                if __binding__ in ("PySide", "PyQt4"):
-                    self.dataChanged.emit(index, index)
-                else:
-                    self.dataChanged.emit(index, index, [QtCore.Qt.EditRole])
+                self.dataChanged.emit(index, index, [QtCore.Qt.EditRole])
 
                 return True
 

@@ -9,6 +9,7 @@ warnings.filterwarnings('ignore', message='The unit of the quantity is stripped'
 warnings.filterwarnings('ignore', message='tight_layout')
 warnings.filterwarnings('ignore', message='Tight layout not applied.')
 warnings.filterwarnings('ignore', message='All-NaN slice encountered')
+warnings.filterwarnings('ignore', message='All-NaN axis encountered')
 warnings.filterwarnings('ignore', message='Attempting to set identical bottom==top results')
 
 app = QtWidgets.QApplication([])

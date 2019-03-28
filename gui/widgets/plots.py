@@ -723,8 +723,14 @@ class DataSetPlotter(PlotWidget):
         if self.dataset is None:
             return
         if '_scan_' in self.dataset.location:
-            unit = self.xy_units.text() if self.xy_units_box.isChecked() else None
-            self.arrays = scan_to_arrays(self.dataset, xy_unit=unit)
+            if self.xy_units_box.isChecked():
+                try:
+                    self.arrays = scan_to_arrays(self.dataset, xy_unit=self.xy_units.text())
+                except:
+                    self.arrays = scan_to_arrays(self.dataset, xy_unit='um')
+                    self.xy_units.setText('um')
+            else:
+                self.arrays = scan_to_arrays(self.dataset)
             self.indep_vars = ('x', 'y')
         elif '_td_cap_' in self.dataset.location:
             self.arrays = td_to_arrays(self.dataset)

@@ -1,0 +1,17 @@
+name: scanning-squid-analysis
+channels:
+  - anaconda
+  - conda-forge
+  - defaults
+dependencies:
+  - ipykernel=4.10.0
+  - jupyter
+  - jupyter_console
+  - matplotlib
+  - pint
+  - pyqtgraph
+  - python=3.6
+  - qtpy
+  - scipy
+  - pip:
+    - qcodes==0.1.11
