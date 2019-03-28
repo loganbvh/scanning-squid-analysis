@@ -620,6 +620,8 @@ class PlotWidget(QtWidgets.QWidget):
         Args:
             dpi (int): DPI with which to save the figure.
         """
+        if self.dataset is None:
+            return
         name = self.fig_title.split('/')[-1].replace(' ', '')
         path, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Export matplotlib', name,
                                                     'PNG Image (*.png);;JPEG Image (*.jpg)')
@@ -631,6 +633,8 @@ class PlotWidget(QtWidgets.QWidget):
             width (int): Figure width in pixels (I think).
         Note: this is not currently used by the GUI because the pyqtgraph figures are ugly.
         """
+        if self.dataset is None:
+            return
         name = self.fig_title.split('/')[-1].replace(' ', '')
         path, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Export pyqtgraph', name,
                                                     'PNG Image (*.png);;JPEG Image (*.jpg)')
