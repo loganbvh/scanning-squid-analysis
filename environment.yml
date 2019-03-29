@@ -12,6 +12,6 @@ dependencies:
   - pip
   - pyqtgraph
   - python=3.6
-  - qcodes=0.1.11
+  - qcodes=0.1.1
   - qtpy
   - scipy
