@@ -28,8 +28,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.measurement_meta = MetaWidget()
         self.dataset_browser = DataSetBrowser()
         self.dataset_browser.dataset_selector.clicked.connect(self.load_dataset)
-        self.dataset_browser.dataset_selector.doubleClicked.connect(self.update_dataset_plot)
         self.dataset_plotter = DataSetPlotter()
+        self.dataset_browser.dataset_selector.doubleClicked.connect(self.update_dataset_plot)
 
         import numpy
         self.shell.push_variables({
