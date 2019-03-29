@@ -23,7 +23,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle('scanning-squid')
         icon_path = os.path.join(os.path.dirname(__file__), 'icon.png')
         app.setWindowIcon(QtGui.QIcon(icon_path))
-
+        app.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
         self.shell = QJupyterWidget()
         self.station_snap = MetaWidget()
         self.measurement_meta = MetaWidget()
