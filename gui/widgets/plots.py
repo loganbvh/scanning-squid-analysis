@@ -278,15 +278,15 @@ class PlotWidget(QtWidgets.QWidget):
         marker = '.'
         ymin, ymax = np.min(ys[1]), np.max(ys[1])
         if self.get_opt('pyqtgraph'):
+            self.plot_1d_qt(xs, ys, xlabel, ylabel, label)
+            self.pyqt_plot.show()
             self.pyqt_splitter.show()
             self.pyqt_splitter.setStretchFactor(0, 1.5)
             self.pyqt_splitter.setStretchFactor(1,1)
-            self.pyqt_plot.show()
-            self.plot_1d_qt(xs, ys, xlabel, ylabel, label)
         else:
+            self.plot_1d_mpl(xs, ys, xlabel, ylabel, marker, ymin, ymax, label)
             self.toolbar.show()
             self.canvas.show()
-            self.plot_1d_mpl(xs, ys, xlabel, ylabel, marker, ymin, ymax, label)
         self.rotate_widget.hide()
         self.exp_data = {d[0]: {'array': d[1].magnitude, 'unit': str(d[1].units)} for d in (xs, ys)}
 
@@ -349,17 +349,17 @@ class PlotWidget(QtWidgets.QWidget):
         zmin, zmax = np.nanmin(zs[1]), np.nanmax(zs[1])
         self.rotate_widget.show()
         if self.get_opt('pyqtgraph'):
+            self.plot_2d_qt(xs, ys, zs, xlabel, ylabel, zlabel, angle=angle)
+            self.pyqt_imview.show()
             self.pyqt_splitter.show()
             self.pyqt_splitter.setStretchFactor(0, 1.5)
             self.pyqt_splitter.setStretchFactor(1,1)
-            self.pyqt_imview.show()
-            self.plot_2d_qt(xs, ys, zs, xlabel, ylabel, zlabel, angle=angle)
         else:
-            self.toolbar.show()
-            self.canvas.show()
             # maintain a reference to the matplotlib slider so that it doesn't die
             self.slider = self.plot_2d_mpl(xs, ys, zs, xlabel, ylabel, zlabel, 
                                 vmin=zmin, vmax=zmax, cmap=cmap, angle=angle, slice_state=slice_state)
+            self.toolbar.show()
+            self.canvas.show()
 
     def plot_2d_qt(self, xs, ys, zs, xlabel, ylabel, zlabel, angle=0):
         """Plot 2D data on self.pyqt_imview.
