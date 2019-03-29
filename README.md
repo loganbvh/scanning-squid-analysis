@@ -46,4 +46,5 @@
 ### Notes
 - If you wish to uninstall the program, double click `remove_env.bat` (Windows) or `remove_env.command` (Mac) to remove the `scanning-squid-analysis` `conda env`, then delete this repository.
 - If you find bugs/have suggestions for new features, please use the [GitHub Issues feature](https://github.com/loganbvh/scanning-squid-analysis/issues).
-- Contact: logan.bvh@gmail.com
+- Contact: logan.bvh@gmail.com.
+- Logo by [Tom Shahar](http://www.tomshahar.io/).
