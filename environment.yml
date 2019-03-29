@@ -4,6 +4,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  - h5py
   - ipykernel=4.10.0
   - jupyter
   - jupyter_console
