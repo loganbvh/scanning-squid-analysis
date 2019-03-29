@@ -31,7 +31,7 @@
 - The currently displayed data (including any rotations, background subtraction, cross-sections, etc.) can be exported using *File -> Export current data...* or ctrl+S (Windows)/cmd+S (Mac). The available export formats are:
   - MATLAB .mat file: Each array is saved to a struct with field names 'array' and 'unit'.
   - HDF5 .h5 file: Can be read by [h5py](https://www.h5py.org/), [MATLAB](https://www.mathworks.com/help/matlab/ref/hdf5read.html), or viewed with [HDF5 View](https://www.hdfgroup.org/downloads/hdfview/).
-  - Python pickle: Python objects are written directly to a file in binary form. Can be read in Python using:
+  - Python pickle: A dictionary of arrays is written directly to a file in binary form and can be loaded using:
     ```python
     import pickle
     with open('filename.pickle', 'rb') as f:
