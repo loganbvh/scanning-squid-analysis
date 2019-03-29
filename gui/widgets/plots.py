@@ -92,9 +92,9 @@ class PlotWidget(QtWidgets.QWidget):
         """
         self.mpl_cmap = 'viridis'
         self.mpl_cmap_selector = QtWidgets.QComboBox()
-        self.mpl_cmap_selector.setSizeAdjustPolicy(QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self.mpl_cmap_selector.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
         self.qt_cmap_selector = QtWidgets.QComboBox()
-        self.qt_cmap_selector.setSizeAdjustPolicy(QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self.qt_cmap_selector.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
 
         cmap_widget = QtWidgets.QGroupBox('Colormaps')
         mpl_cmap_widget = QtWidgets.QGroupBox('matplotlib')
