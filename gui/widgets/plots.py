@@ -289,7 +289,6 @@ class PlotWidget(QtWidgets.QWidget):
             self.plot_1d_mpl(xs, ys, xlabel, ylabel, marker, ymin, ymax, label)
         self.rotate_widget.hide()
         self.exp_data = {d[0]: {'array': d[1].magnitude, 'unit': str(d[1].units)} for d in (xs, ys)}
-        self.exp_data['metadata'] = self.dataset.metadata
 
     def plot_1d_qt(self, xs, ys, xlabel, ylabel, label):
         """Plot 1D data on self.pyqt_plot.
@@ -385,7 +384,6 @@ class PlotWidget(QtWidgets.QWidget):
         self.pyqt_imview.set_histogram(self.get_opt('histogram'))
         self.exp_data = {d[0]: {'array': d[1].magnitude, 'unit': str(d[1].units)} for d in (xs, ys)}
         self.exp_data[zs[0]] = {'array': z, 'unit': str(zs[1].units)}
-        self.exp_data['metadata'] = self.dataset.metadata
 
     def plot_2d_mpl(self, xs, ys, zs, xlabel, ylabel, zlabel, cmap=None, angle=0, slice_state=None, **kwargs):
         """Plot 2D data on self.fig.
@@ -423,8 +421,7 @@ class PlotWidget(QtWidgets.QWidget):
             self.exp_data = {
                 xs[0]: {'array': x, 'unit': str(xs[1].units)},
                 ys[0]: {'array': y, 'unit': str(ys[1].units)},
-                zs[0]: {'array': z, 'unit': str(zs[1].units)},
-                'metadata': self.dataset.metadata
+                zs[0]: {'array': z, 'unit': str(zs[1].units)}
             }
         else:
             plt.rcParams.update({'font.size': 10})
@@ -513,8 +510,7 @@ class PlotWidget(QtWidgets.QWidget):
             self.exp_data = {
                 xs[0]: {'array': x, 'unit': str(xs[1].units)},
                 ys[0]: {'array': y, 'unit': str(ys[1].units)},
-                zs[0]: {'array': z, 'unit': str(zs[1].units)},
-                'metadata': self.dataset.metadata
+                zs[0]: {'array': z, 'unit': str(zs[1].units)}
             }            
             return slider # return slider handle to maintain connection to it
 
@@ -624,7 +620,7 @@ class PlotWidget(QtWidgets.QWidget):
             return
         name = self.fig_title.split('/')[-1].replace(' ', '')
         path, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Export matplotlib', name,
-                                                    'PNG Image (*.png);;JPEG Image (*.jpg)')
+                                                    'PNG (*.png)')
         self.fig.savefig(path, dpi=dpi)
 
     def export_qt(self, width=1200):
@@ -637,7 +633,7 @@ class PlotWidget(QtWidgets.QWidget):
             return
         name = self.fig_title.split('/')[-1].replace(' ', '')
         path, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Export pyqtgraph', name,
-                                                    'PNG Image (*.png);;JPEG Image (*.jpg)')
+                                                    'PNG Image (*.png);; JPG Image (*.jpg)')
         plot = self.pyqt_plot.plotItem if self.pyqt_plot.isVisible() else self.pyqt_imview.scene
         exporter = pg.exporters.ImageExporter(plot)
         exporter.parameters()['width'] = width
@@ -653,13 +649,22 @@ class PlotWidget(QtWidgets.QWidget):
         path, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Export current data', name,
                                                     'MAT (*.mat);;HDF5 (*.h5);;pickle (*.pickle)')
         if path.endswith('mat'):
-            savemat(path, self.exp_data)
+            try:
+                savemat(path, self.exp_data)
+            except:
+                pass
         elif path.endswith('h5'):
-            with h5py.File(path) as df:
-                set_h5_attrs(df, self.exp_data)
+            try:
+                with h5py.File(path) as df:
+                    set_h5_attrs(df, self.exp_data)
+            except:
+                pass
         elif path.endswith('pickle'):
-            with open(path, 'wb') as f:
-                pickle.dump(self.exp_data, f)
+            try:
+                with open(path, 'wb') as f:
+                    pickle.dump(self.exp_data, f)
+            except:
+                pass
 
     def _subtract_line_by_line(self, zdata, axis, func):
         """Perform line-by-line background subtraction of `zdata` along axis `axis` according

@@ -46,13 +46,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.snapshot_dock = self.add_dock(self.station_snap, 'Microscope Snapshot', 'Left')
         self.meta_dock = self.add_dock(self.measurement_meta, 'Measurement Metadata', 'Left')
         self.shell_dock = self.add_dock(self.shell, 'Shell', 'Left')
-        self.plotter_dock = self.add_dock(self.dataset_plotter, 'DataSetPlotter', 'Right')
+        self.plotter_dock = self.add_dock(self.dataset_plotter, 'DataSet Plotter', 'Right')
         self.tabifyDockWidget(self.snapshot_dock, self.meta_dock)
 
         self.plot_menu.addAction('Export matplotlib...', self.dataset_plotter.export_mpl,
                                     QtGui.QKeySequence('Ctrl+P'))
-        self.plot_menu.addAction('Export pyqtgraph...', self.dataset_plotter.export_qt,
-                                    QtGui.QKeySequence('Ctrl+Shift+P'))                
+        # removing this feature due to a bug in pyqtgraph
+        # see: https://github.com/pyqtgraph/pyqtgraph/issues/538
+        # self.plot_menu.addAction('Export pyqtgraph...', self.dataset_plotter.export_qt,
+        #                             QtGui.QKeySequence('Ctrl+Shift+P'))                
         self.file_menu.addAction('Select directory...', self.dataset_browser.select_from_dialog,
                                     QtGui.QKeySequence('Ctrl+O'))
         self.file_menu.addAction('Export current data...', self.dataset_plotter.export_data,
