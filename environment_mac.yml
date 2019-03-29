@@ -12,6 +12,7 @@ dependencies:
   - pint
   - pyqtgraph
   - python=3.6
-  - qcodes=0.1.1
   - qtpy
   - scipy
+  - pip:
+    - qcodes==0.1.11
