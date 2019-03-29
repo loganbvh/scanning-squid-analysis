@@ -10,7 +10,6 @@ dependencies:
   - jupyter_console
   - matplotlib
   - pint
-  - pip
   - pyqtgraph
   - python=3.6
   - qcodes=0.1.1
