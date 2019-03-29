@@ -41,7 +41,7 @@
   - matplotlib.pyplot: `plt`
   - numpy: `np`
   - a dict of the current arrays in the form of [pint](https://pint.readthedocs.io/en/latest/) `Quantities`: `arrays`. For example, `arrays['MAG'].magnitude` will be the `MAG` array, with units `arrays['MAG'].units`
-  - the current `qcodes.data.DataSet`: `dataset`
+  - the current `qcodes.data.data_set.DataSet`: `dataset`
 
 ### Notes
 - If you wish to uninstall the program, double click `remove_env.bat` (Windows) or `remove_env.command` (Mac) to remove the `scanning-squid-analysis` `conda env`, then delete this repository.
