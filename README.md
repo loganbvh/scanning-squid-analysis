@@ -25,7 +25,7 @@
  
 ### Usage
 - Use the **Select directory** button, *File -> Select directory...*, or ctrl+O (Windows)/cmd+O (Mac) to select the data directory. This base directory (for example `sample_data/data` in this repo) should contain dated subdirectories, which in turn contain single datasets (e.g. `sample_data/data/2018-09-14/#016_scan_13-07-41`).
-- Double click a specific dataset in the **DataSet Browser** to load its data. The dataset metadata and instrument settings can be examined with the **Measurement Metadata** and **Microscope Snapshot** widgets.
+- Click a specific dataset in the **DataSet Browser** to load its data. The dataset metadata and instrument settings can be examined with the **Measurement Metadata** and **Microscope Snapshot** widgets.
 - The arrays contained in the dataset can be visualized/lightly processed in the **DataSet Plotter**.
 - The current matplotlib figure can be exported using *Plot -> Export matplotlib...* or ctrl+P (Windows)/cmd+P (Mac).
 - The currently displayed data (including any rotations, background subtraction, cross-sections, etc.) can be exported using *File -> Export current data...* or ctrl+S (Windows)/cmd+S (Mac). The available export formats are:
