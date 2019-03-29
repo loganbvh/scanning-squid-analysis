@@ -65,8 +65,7 @@ class PlotWidget(QtWidgets.QWidget):
         self.pyqt_splitter.hide()
         self.pyqt_splitter.addWidget(pyqt_top_widgets)
         self.pyqt_splitter.addWidget(pyqt_bottom_widgets)
-        self.pyqt_splitter.setStretchFactor(0, 1.5)
-        self.pyqt_splitter.setStretchFactor(1,1)
+        self.pyqt_splitter.setStretchFactor(1,1.5)
 
         # plot options
         self.option_layout = QtWidgets.QHBoxLayout()
@@ -281,8 +280,6 @@ class PlotWidget(QtWidgets.QWidget):
             self.plot_1d_qt(xs, ys, xlabel, ylabel, label)
             self.pyqt_plot.show()
             self.pyqt_splitter.show()
-            self.pyqt_splitter.setStretchFactor(0, 1.5)
-            self.pyqt_splitter.setStretchFactor(1,1)
         else:
             self.plot_1d_mpl(xs, ys, xlabel, ylabel, marker, ymin, ymax, label)
             self.toolbar.show()
@@ -352,8 +349,6 @@ class PlotWidget(QtWidgets.QWidget):
             self.plot_2d_qt(xs, ys, zs, xlabel, ylabel, zlabel, angle=angle)
             self.pyqt_imview.show()
             self.pyqt_splitter.show()
-            self.pyqt_splitter.setStretchFactor(0, 1.5)
-            self.pyqt_splitter.setStretchFactor(1,1)
         else:
             # maintain a reference to the matplotlib slider so that it doesn't die
             self.slider = self.plot_2d_mpl(xs, ys, zs, xlabel, ylabel, zlabel, 

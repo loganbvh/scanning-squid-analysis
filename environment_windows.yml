@@ -1,5 +1,6 @@
 name: scanning-squid-analysis
 channels:
+  - anaconda
   - conda-forge
   - defaults
 dependencies:
