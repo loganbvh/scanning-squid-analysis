@@ -1,8 +1,6 @@
 # scanning-squid-analysis
-
-## Image analysis for scanning SQUID microscopy.
-
 ![scanning-squid-analysis GUI](screengrab.png)
+## Image analysis for scanning SQUID microscopy.
 
 ### Requirements
 - [Anaconda 3](https://www.anaconda.com/distribution/#download-section)
