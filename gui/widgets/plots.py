@@ -181,7 +181,6 @@ class PlotWidget(QtWidgets.QWidget):
         plot_opts = [
             ('pyqtgraph', False),
             ('histogram', True),
-            #('zoom to fit', True),
             ('grid', True),
         ]
         self.opt_checks = {}
