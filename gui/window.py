@@ -20,7 +20,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.dataset = None
-        self.setWindowTitle('scanning-squid')
+        self.setWindowTitle('scanning-squid-analysis')
         icon_path = os.path.join(os.path.dirname(__file__), 'img', 'icon.png')
         app.setWindowIcon(QtGui.QIcon(icon_path))
         self.shell = QJupyterWidget()
