@@ -1,5 +1,5 @@
 # scanning-squid-analysis
-![scanning-squid-analysis GUI](screengrab.png)
+![scanning-squid-analysis GUI](gui/img/screengrab.png)
 ## Image analysis for scanning SQUID microscopy
 
 ### Requirements
