@@ -36,7 +36,7 @@
     ```python
     import pickle
     with open('filename.pickle', 'rb') as f:
-        data_dict = pickle.load(f)
+        arrays = pickle.load(f)
     ```
 - The built-in IPython console has access to the following:
   - matplotlib.pyplot: `plt`
