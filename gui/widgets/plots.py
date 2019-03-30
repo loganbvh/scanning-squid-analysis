@@ -181,7 +181,7 @@ class PlotWidget(QtWidgets.QWidget):
         plot_opts = [
             ('pyqtgraph', False),
             ('histogram', True),
-            ('zoom to fit', True),
+            #('zoom to fit', True),
             ('grid', True),
         ]
         self.opt_checks = {}
@@ -275,13 +275,13 @@ class PlotWidget(QtWidgets.QWidget):
         xlabel = f'{xs[0]} [{xs[1].units}]'
         ylabel = f'{ys[0]} [{ys[1].units}]'
         marker = '.'
-        ymin, ymax = np.min(ys[1]), np.max(ys[1])
+        #ymin, ymax = np.min(ys[1]), np.max(ys[1])
         if self.get_opt('pyqtgraph'):
             self.plot_1d_qt(xs, ys, xlabel, ylabel, label)
             self.pyqt_plot.show()
             self.pyqt_splitter.show()
         else:
-            self.plot_1d_mpl(xs, ys, xlabel, ylabel, marker, ymin, ymax, label)
+            self.plot_1d_mpl(xs, ys, xlabel, ylabel, marker, label)
             self.toolbar.show()
             self.canvas.show()
         self.rotate_widget.hide()
@@ -300,8 +300,10 @@ class PlotWidget(QtWidgets.QWidget):
         """
         self.pyqt_plot.setLabels(bottom=(xlabel,), left=(ylabel,))
         self.pyqt_plot.plot(xs[1].magnitude, ys[1].magnitude, symbol='o', pen=None)
+        grid = self.get_opt('grid')
+        self.pyqt_plot.plotItem.showGrid(x=grid, y=grid)
 
-    def plot_1d_mpl(self, xs, ys, xlabel, ylabel, marker, ymin, ymax, label):
+    def plot_1d_mpl(self, xs, ys, xlabel, ylabel, marker, label):
         """Plot 1D data on self.fig.
         Args:
             xs (tuple[str, np.ndarray[pint.Quantity]]): x data in the form of a
@@ -311,16 +313,12 @@ class PlotWidget(QtWidgets.QWidget):
             xlabel (str): x-axis label.
             ylabel (str): y-axis label.
             marker (str): Plot point marker.
-            ymin (float): Minimum y value.
-            ymax (float): Maximum y value.
             label (str): Label for legend.
         """
         ax = self.fig.add_subplot(111)
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
         ax.plot(xs[1].magnitude, ys[1].magnitude, marker, label=label)
-        if not self.get_opt('zoom to fit'):
-            ax.set_ylim(ymin, ymax)
         ax.grid(self.get_opt('grid'))
         self.fig.tight_layout()
         self.fig.subplots_adjust(top=0.9, bottom=0.15)
@@ -377,6 +375,9 @@ class PlotWidget(QtWidgets.QWidget):
         self.pyqt_imview.setLabels(xlabel=xlabel, ylabel=ylabel, zlabel=zlabel)
         self.pyqt_imview.autoRange()
         self.pyqt_imview.set_histogram(self.get_opt('histogram'))
+        grid = self.get_opt('grid')
+        self.pyqt_imview.getView().showGrid(grid,grid)
+        self.pyqt_imview.x_slice_widget.plotItem.showGrid(x=grid, y=grid)
         self.exp_data = {d[0]: {'array': d[1].magnitude, 'unit': str(d[1].units)} for d in (xs, ys)}
         self.exp_data[zs[0]] = {'array': z, 'unit': str(zs[1].units)}
 
@@ -852,7 +853,7 @@ class SlicePlotWidget(pg.PlotWidget):
         self.search_mode = True
         self.label = None
         self.selected_point = None
-        self.plotItem.showGrid(x=True, y=True, alpha=0.5)
+        self.plotItem.showGrid(x=True, y=True)
         self.scene().sigMouseClicked.connect(self.toggle_search)
         self.scene().sigMouseMoved.connect(self.handle_mouse_move)
 
