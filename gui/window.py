@@ -21,7 +21,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__()
         self.dataset = None
         self.setWindowTitle('scanning-squid')
-        icon_path = os.path.join(os.path.dirname(__file__), 'icon.png')
+        icon_path = os.path.join(os.path.dirname(__file__), 'img', 'icon.png')
         app.setWindowIcon(QtGui.QIcon(icon_path))
         self.shell = QJupyterWidget()
         self.station_snap = MetaWidget()
