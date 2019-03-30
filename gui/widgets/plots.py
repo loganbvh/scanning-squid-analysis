@@ -378,6 +378,7 @@ class PlotWidget(QtWidgets.QWidget):
         grid = self.get_opt('grid')
         self.pyqt_imview.getView().showGrid(grid,grid)
         self.pyqt_imview.x_slice_widget.plotItem.showGrid(x=grid, y=grid)
+        self.pyqt_imview.y_slice_widget.plotItem.showGrid(x=grid, y=grid)
         self.exp_data = {d[0]: {'array': d[1].magnitude, 'unit': str(d[1].units)} for d in (xs, ys)}
         self.exp_data[zs[0]] = {'array': z, 'unit': str(zs[1].units)}
 
