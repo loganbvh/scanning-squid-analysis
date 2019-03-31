@@ -200,10 +200,23 @@ class PlotWidget(QtWidgets.QWidget):
         self.bins_box.setKeyboardTracking(False)
         self.bins_box.valueChanged.connect(self.replot)
         self.bins_box.setEnabled(self.get_opt('histogram'))
-        opt_layout.addWidget(QtWidgets.QLabel('bins:'))
-        opt_layout.addWidget(self.bins_box)
+
+        bins_widget = QtWidgets.QWidget()
+        bins_widget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        bins_layout = QtWidgets.QHBoxLayout(bins_widget)
+        if self.get_opt('histogram'):
+            bins_widget.show()
+        else:
+            bins_widget.hide()
+        bins_layout.addWidget(QtWidgets.QLabel('bins: '))
+        bins_layout.addWidget(self.bins_box)
+        opt_layout.addWidget(bins_widget)
+
+        # opt_layout.addWidget(QtWidgets.QLabel('bins:'))
+        # opt_layout.addWidget(self.bins_box)
         self.option_layout.addWidget(opt_group)
         self.opt_checks['histogram'].stateChanged.connect(lambda val: self.bins_box.setEnabled(val))
+        self.opt_checks['histogram'].stateChanged.connect(lambda val: bins_widget.show() if val else bins_widget.hide())
 
     def set_cmap_mpl(self, idx):
         """Set the matplotlib colormap.
@@ -486,7 +499,7 @@ class PlotWidget(QtWidgets.QWidget):
             }
         else:
             plt.rcParams.update({'font.size': 10})
-            self.fig.subplots_adjust(top=0.9, bottom=0.05, left=0.0, right=1.0, hspace=0.5, wspace=0.0)
+            self.fig.subplots_adjust(top=0.85, bottom=0.05, left=0.0, right=1.0, hspace=0.5, wspace=0.0)
             ax0 = plt.subplot2grid((12,12), (0,3), colspan=6, rowspan=5, fig=self.fig)
             ax0.set_xlabel(xlabel)
             ax0.set_ylabel(ylabel)
