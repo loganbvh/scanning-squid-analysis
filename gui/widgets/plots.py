@@ -1,4 +1,5 @@
-import matplotlib.figure
+from matplotlib.figure import Figure
+from matplotlib.collections import LineCollection
 from matplotlib import cm
 from matplotlib import colors
 from matplotlib import transforms
@@ -25,7 +26,7 @@ mpl_cmaps = ('viridis', 'plasma', 'inferno', 'magma', 'cividis', 'Greys')
 qt_cmaps = ('thermal', 'flame', 'yellowy', 'bipolar', 'grey')#, 'spectrum', 'cyclic', 'greyclip')
 plot_lw = 3
 font_size = 12
-matplotlib.rcParams.update({'font.size': font_size})
+plt.rcParams.update({'font.size': font_size})
 
 
 __all__ = ['DataSetPlotter']
@@ -40,7 +41,7 @@ class PlotWidget(QtWidgets.QWidget):
         self.exp_data = {}
 
         # matplotlib stuff
-        self.fig = matplotlib.figure.Figure()
+        self.fig = Figure()
         self.fig.patch.set_alpha(1)
         self.fig.tight_layout()
         self.fig.subplots_adjust(bottom=0.15)
@@ -171,6 +172,10 @@ class PlotWidget(QtWidgets.QWidget):
         for i, b in enumerate(slice_buttons):
             slice_layout.addWidget(b)
             self.slice_radio.addButton(b, i)
+        self.line_color_btn = QtWidgets.QCheckBox('color by value')
+        self.line_color_btn.setChecked(True)
+        self.line_color_btn.stateChanged.connect(self.replot)
+        slice_layout.addWidget(self.line_color_btn)
         self.option_layout.addWidget(slice_widget)
         self.slice_radio.buttonClicked.connect(self.set_slice)
         slice_widget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
@@ -373,12 +378,8 @@ class PlotWidget(QtWidgets.QWidget):
             self.pyqt_imview.show()
             self.pyqt_splitter.show()
         else:
-            # maintain a reference to the matplotlib slider so that it doesn't die
             self.plot_2d_mpl(xs, ys, zs, xlabel, ylabel, zlabel, 
                             vmin=zmin, vmax=zmax, cmap=cmap, angle=angle, slice_state=slice_state)
-            # if sliders:
-            #     for i, slider in sliders:
-            #         setattr(self, f'slider{i}', slider)
             self.toolbar.show()
             self.canvas.show()
 
@@ -411,7 +412,7 @@ class PlotWidget(QtWidgets.QWidget):
         self.exp_data[zs[0]] = {'array': z, 'unit': str(zs[1].units)}
 
     def plot_2d_mpl(self, xs, ys, zs, xlabel, ylabel, zlabel, cmap=None, angle=0, slice_state=None, **kwargs):
-        """Plot 2D data on self.fig.
+        """Plot 2D data on self.fig, with options determined by keyword args.
         Args:
             xs (tuple[str, np.ndarray[pint.Quantity]]): x data in the form of a
                 tuple of (name, 0D or 1D array of pint.Quantities).
@@ -457,9 +458,9 @@ class PlotWidget(QtWidgets.QWidget):
                 # set color of histogram bins according to z value
                 fracs = np.linspace(min_val, max_val, nbins)
                 norm = colors.Normalize(min_val, max_val)
-                for thisfrac, thispatch in zip(fracs, patches):
-                    color = getattr(cm, cmap)(norm(thisfrac))
-                    thispatch.set_facecolor(color)
+                for frac, patch in zip(fracs, patches):
+                    color = getattr(cm, cmap)(norm(frac))
+                    patch.set_facecolor(color)
                 # make sliders to control cmin and cmax
                 ax_min_slider = main_divider.append_axes('right', size='10%', pad=0.3)
                 self.min_slider = min_slider = VertSlider(ax_min_slider, 'min', min_val, max_val,
@@ -478,15 +479,16 @@ class PlotWidget(QtWidgets.QWidget):
                     upper.set_ydata(cmax)
                     lower.set_ydata(cmin)
                     min_slider.valmax = cmax
+                    # update colors on the histogram to reflect current clims
                     norm = colors.Normalize(cmin, cmax)
-                    for thisfrac, thispatch in zip(fracs, patches):
-                        if cmin <= thisfrac <= cmax:
-                            color = getattr(cm, cmap)(norm(thisfrac))
-                            thispatch.set_alpha(1)
+                    for frac, patch in zip(fracs, patches):
+                        if cmin <= frac <= cmax:
+                            color = getattr(cm, cmap)(norm(frac))
+                            patch.set_alpha(1)
                         else:
                             color = 'k'
-                            thispatch.set_alpha(0.25)
-                        thispatch.set_facecolor(color)
+                            patch.set_alpha(0.25)
+                        patch.set_facecolor(color)
                 for s in [min_slider, max_slider]:
                     s.on_changed(update_cval)
             z = rotate(zs[1].magnitude.T, angle, cval=np.nan)
@@ -497,7 +499,7 @@ class PlotWidget(QtWidgets.QWidget):
                 ys[0]: {'array': y, 'unit': str(ys[1].units)},
                 zs[0]: {'array': z.T, 'unit': str(zs[1].units)}
             }
-        else:
+        else: # slicing
             plt.rcParams.update({'font.size': 10})
             self.fig.subplots_adjust(top=0.85, bottom=0.05, left=0.0, right=1.0, hspace=0.5, wspace=0.0)
             ax0 = plt.subplot2grid((12,12), (0,3), colspan=6, rowspan=5, fig=self.fig)
@@ -527,9 +529,9 @@ class PlotWidget(QtWidgets.QWidget):
                 # set color of histogram bins according to z value
                 fracs = np.linspace(min_val, max_val, nbins)
                 norm = colors.Normalize(min_val, max_val)
-                for thisfrac, thispatch in zip(fracs, patches):
-                    color = getattr(cm, cmap)(norm(thisfrac))
-                    thispatch.set_facecolor(color)
+                for frac, patch in zip(fracs, patches):
+                    color = getattr(cm, cmap)(norm(frac))
+                    patch.set_facecolor(color)
                 # make sliders to control cmin and cmax
                 ax_min_slider = main_divider.append_axes('right', size='20%', pad=0.25)
                 self.min_slider = min_slider = VertSlider(ax_min_slider, 'min', min_val, max_val,
@@ -549,14 +551,14 @@ class PlotWidget(QtWidgets.QWidget):
                     lower.set_ydata(cmin)
                     min_slider.valmax = cmax
                     norm = colors.Normalize(cmin, cmax)
-                    for thisfrac, thispatch in zip(fracs, patches):
-                        if cmin <= thisfrac <= cmax:
-                            color = getattr(cm, cmap)(norm(thisfrac))
-                            thispatch.set_alpha(1)
+                    for frac, patch in zip(fracs, patches):
+                        if cmin <= frac <= cmax:
+                            color = getattr(cm, cmap)(norm(frac))
+                            patch.set_alpha(1)
                         else:
                             color = 'k'
-                            thispatch.set_alpha(0.25)
-                        thispatch.set_facecolor(color)
+                            patch.set_alpha(0.25)
+                        patch.set_facecolor(color)
                 for s in [min_slider, max_slider]:
                     s.on_changed(update_cval)
             # now add a subplot for the slice data
@@ -565,14 +567,48 @@ class PlotWidget(QtWidgets.QWidget):
             xlab = xlabel if slice_state == 'x' else ylabel
             label = zlabel.split(' ')[:1] + [''.join(zlabel.split(' ')[1:])]
             ylab = '\n'.join(label)
+            color_by_value = self.line_color_btn.isChecked()
             if slice_state == 'x':
-                line, = ax1.plot(xs[1].magnitude, zs[1].magnitude[:,0], lw=plot_lw)
+                if color_by_value:
+                    points = np.array([xs[1].magnitude, zs[1].magnitude[:,0]]).T.reshape(-1, 1, 2)
+                    # make segments overlap
+                    segments = np.concatenate([points[:-2],points[1:-1], points[2:]], axis=1)
+                    lc = LineCollection(segments, cmap=cmap, norm=colors.Normalize(*cbar.get_clim()))
+                    lc.set_array(zs[1].magnitude[:,0])
+                    lc.set_linewidth(plot_lw)
+                    ax1.add_collection(lc)
+                    # we need an invisible line so that the figure draws correctly
+                    line, = ax1.plot([0,0], alpha=0)
+                    xdata, ydata = xs[1].magnitude, zs[1].magnitude[:,0]
+                else:
+                    line, = ax1.plot(xs[1].magnitude, zs[1].magnitude[:,0], lw=plot_lw)
+                    xdata, ydata = line.get_xdata(), line.get_ydata()
                 cut = ax0.axhline(y=ax0.get_ylim()[0], color='k', alpha=0.8, lw=2)
             else:
-                line, = ax1.plot(ys[1].magnitude, zs[1].magnitude[0,:], lw=plot_lw)
+                if color_by_value:
+                    points = np.array([ys[1].magnitude, zs[1].magnitude[0,:]]).T.reshape(-1, 1, 2)
+                    # make segments overlap
+                    segments = np.concatenate([points[:-2],points[1:-1], points[2:]], axis=1)
+                    lc = LineCollection(segments, cmap=cmap, norm=colors.Normalize(*cbar.get_clim()))
+                    lc.set_array(zs[1].magnitude[0,:])
+                    lc.set_linewidth(plot_lw)
+                    ax1.add_collection(lc)
+                    # we need an invisible line so that the figure draws correctly
+                    line,  = ax1.plot([0,0], alpha=0)
+                    xdata, ydata = ys[1].magnitude, zs[1].magnitude[0,:]
+                else:
+                    line, = ax1.plot(ys[1].magnitude, zs[1].magnitude[0,:], lw=plot_lw)
+                    xdata, ydata = line.get_xdata(), line.get_ydata()
                 cut = ax0.axvline(x=ax0.get_xlim()[0], color='k', alpha=0.8, lw=2)
             ax1.set_xlabel(xlab)
             ax1.set_ylabel(ylab)
+
+            if self.line_color_btn.isChecked() and self.get_opt('histogram'):
+                # adjust line color based on min_slider and max_slider
+                def update_line_color(val):
+                    lc.set_norm(colors.Normalize(min_slider.val, max_slider.val))
+                for s in [min_slider, max_slider]:
+                    s.on_changed(update_line_color)
             # add an axis for the slice slider
             divider = make_axes_locatable(ax1)
             ax_slider = divider.append_axes('bottom', size='15%', pad=0.45)
@@ -590,23 +626,53 @@ class PlotWidget(QtWidgets.QWidget):
                 x = np.linspace(*ax0.get_xlim(), z.shape[1])
                 y = np.linspace(*ax0.get_ylim(), z.shape[0])
                 margin = 0.025
+                color_by_value = self.line_color_btn.isChecked()
                 if slice_state == 'x':
                     slider.valmax = len(y) - 1
-                    line.set_data(x, z[:,i])
+                    if color_by_value:
+                        points = np.array([x, z[:,i]]).T.reshape(-1, 1, 2)
+                        # make segments overlap
+                        segments = np.concatenate([points[:-2],points[1:-1], points[2:]], axis=1)
+                        lc.set_segments(segments)
+                        lc.set_array(z[:,i])
+                        lc.set_norm(colors.Normalize(*cbar.get_clim()))
+                    else:
+                        line.set_xdata(x)
+                        line.set_ydata(z[:,i])
                     rng = np.nanmax(x) - np.nanmin(x)
                     xmin = np.nanmin(x) - margin * rng
                     xmax = np.nanmax(x) + margin * rng
                     cut.set_ydata(2*[y[i]])
-                else:
+                    xdata, ydata = x, z[:,i]
+                    self.exp_data['slice'] = {
+                        xs[0]: {'array': xdata, 'unit': str(xs[1].units)},
+                        zs[0]: {'array': ydata, 'unit': str(zs[1].units)},
+                        'index': int(slider.val)
+                    }
+                elif slice_state == 'y':
                     slider.valmax = len(x) - 1
-                    line.set_data(y, z[i,:])
+                    if color_by_value:
+                        points = np.array([y, z[i,:]]).T.reshape(-1, 1, 2)
+                        # make segments overlap
+                        segments = np.concatenate([points[:-2],points[1:-1], points[2:]], axis=1)
+                        lc.set_segments(segments)
+                        lc.set_array(z[i,:])
+                        lc.set_norm(colors.Normalize(*cbar.get_clim()))
+                    else:
+                        line.set_xdata(y)
+                        line.set_ydata(z[i,:])
                     rng = np.nanmax(y) - np.nanmin(y)
                     xmin = np.nanmin(y) - margin * rng
                     xmax = np.nanmax(y) + margin * rng
                     cut.set_xdata(2*[x[i]])
+                    xdata, ydata = y, z[i,:]
+                    self.exp_data['slice'] = {
+                        ys[0]: {'array': xdata, 'unit': str(ys[1].units)},
+                        zs[0]: {'array': ydata, 'unit': str(zs[1].units)},
+                        'index': int(slider.val)
+                    }
                 ax1.set_xlim(xmin, xmax)
                 slider.ax.set_xlim(slider.valmin,slider.valmax)
-                ydata = line.get_ydata()
                 vmin, vmax = np.nanmin(ydata), np.nanmax(ydata)
                 margin = 0.1
                 rng = vmax - vmin
@@ -616,20 +682,8 @@ class PlotWidget(QtWidgets.QWidget):
                     ax1.set_ylim(vmin, vmax)
                 except ValueError: # vmin == vmax
                     pass
-                if slice_state == 'x':
-                    self.exp_data['slice'] = {
-                        xs[0]: {'array': line.get_xdata(), 'unit': str(xs[1].units)},
-                        zs[0]: {'array': line.get_ydata(), 'unit': str(zs[1].units)},
-                        'index': int(slider.val)
-                    }
-                elif slice_state == 'y':
-                    self.exp_data['slice'] = {
-                        ys[0]: {'array': line.get_xdata(), 'unit': str(ys[1].units)},
-                        zs[0]: {'array': line.get_ydata(), 'unit': str(zs[1].units)},
-                        'index': int(slider.val)
-                    }
-                self.fig.tight_layout()
                 self.canvas.draw()
+                self.fig.tight_layout()
             update(0)
             slider.on_changed(update)
             self.exp_data = {
@@ -665,12 +719,15 @@ class PlotWidget(QtWidgets.QWidget):
         if self.slice_state == 0:
             self.pyqt_imview.x_slice_widget.hide()
             self.pyqt_imview.y_slice_widget.hide()
+            self.line_color_btn.setEnabled(False)
         elif self.slice_state == 1:
             self.pyqt_imview.x_slice_widget.show()
             self.pyqt_imview.y_slice_widget.hide()
+            self.line_color_btn.setEnabled(True)
         elif self.slice_state == 2:
             self.pyqt_imview.x_slice_widget.hide()
             self.pyqt_imview.y_slice_widget.show()
+            self.line_color_btn.setEnabled(True)
         else:
             raise ValueError("Unknown Slice State: {}".format(self.slice_state))
 
