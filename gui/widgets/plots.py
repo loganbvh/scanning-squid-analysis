@@ -495,7 +495,7 @@ class PlotWidget(QtWidgets.QWidget):
             self.exp_data = {
                 xs[0]: {'array': x, 'unit': str(xs[1].units)},
                 ys[0]: {'array': y, 'unit': str(ys[1].units)},
-                zs[0]: {'array': z, 'unit': str(zs[1].units)}
+                zs[0]: {'array': z.T, 'unit': str(zs[1].units)}
             }
         else:
             plt.rcParams.update({'font.size': 10})
@@ -635,7 +635,7 @@ class PlotWidget(QtWidgets.QWidget):
             self.exp_data = {
                 xs[0]: {'array': x, 'unit': str(xs[1].units)},
                 ys[0]: {'array': y, 'unit': str(ys[1].units)},
-                zs[0]: {'array': z, 'unit': str(zs[1].units)}
+                zs[0]: {'array': z.T, 'unit': str(zs[1].units)}
             }
 
     def replot(self):
