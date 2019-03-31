@@ -454,6 +454,7 @@ class PlotWidget(QtWidgets.QWidget):
                 ax_hist.set_ylim(cax.get_xlim())
                 ax_hist.set_xticklabels([])
                 ax_hist.grid(self.get_opt('grid'))
+                #ax_hist.invert_xaxis()
                 N, bins, patches = ax_hist.hist(zs[1].magnitude.ravel(), bins=nbins, orientation='horizontal')
                 # set color of histogram bins according to z value
                 fracs = np.linspace(min_val, max_val, nbins)
@@ -525,6 +526,7 @@ class PlotWidget(QtWidgets.QWidget):
                 ax_hist.set_ylim(cax.get_xlim())
                 ax_hist.set_xticklabels([])
                 ax_hist.grid(self.get_opt('grid'))
+                #ax_hist.invert_xaxis()
                 N, bins, patches = ax_hist.hist(zs[1].magnitude.ravel(), bins=nbins, orientation='horizontal')
                 # set color of histogram bins according to z value
                 fracs = np.linspace(min_val, max_val, nbins)
