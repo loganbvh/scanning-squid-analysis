@@ -446,7 +446,7 @@ class PlotWidget(QtWidgets.QWidget):
                 nbins = self.bins_box.value()
                 min_val, max_val = np.nanmin(zs[1].magnitude), np.nanmax(zs[1].magnitude)
                 # add axis for histogram
-                ax_hist = main_divider.append_axes('right', size='25%', pad=1)
+                ax_hist = main_divider.append_axes('right', size='25%', pad=1.1)
                 # lines indicating cmin and cmax on histogram
                 upper = ax_hist.axhline(max_val, color='k', lw=2)
                 lower = ax_hist.axhline(min_val, color='k', lw=2)
@@ -516,7 +516,7 @@ class PlotWidget(QtWidgets.QWidget):
                 nbins = self.bins_box.value()
                 min_val, max_val = np.nanmin(zs[1].magnitude), np.nanmax(zs[1].magnitude)
                 # add axis for histogram
-                ax_hist = main_divider.append_axes('right', size='50%', pad=1)
+                ax_hist = main_divider.append_axes('right', size='50%', pad=1.1)
                 # lines indicating cmin and cmax on histogram
                 upper = ax_hist.axhline(max_val, color='k', lw=2)
                 lower = ax_hist.axhline(min_val, color='k', lw=2)
