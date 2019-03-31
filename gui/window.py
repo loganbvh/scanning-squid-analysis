@@ -11,6 +11,7 @@ warnings.filterwarnings('ignore', message='Tight layout not applied.')
 warnings.filterwarnings('ignore', message='All-NaN slice encountered')
 warnings.filterwarnings('ignore', message='All-NaN axis encountered')
 warnings.filterwarnings('ignore', message='Attempting to set identical bottom==top results')
+warnings.filterwarnings('ignore', message='invalid value encountered in less')
 
 app = QtWidgets.QApplication([])
 
