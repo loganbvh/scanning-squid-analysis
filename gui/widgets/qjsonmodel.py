@@ -29,7 +29,7 @@ Changes:
 
 import json
 from collections import OrderedDict
-from .qt import QtWidgets, QtCore
+from ..qt import QtWidgets, QtCore
 
 
 class QJsonTreeItem(object):

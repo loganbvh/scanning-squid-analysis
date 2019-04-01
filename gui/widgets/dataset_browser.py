@@ -1,7 +1,7 @@
 import os
 from ..qt import *
 import qcodes as qc
-from ..qjsonmodel import QJsonModel
+from .qjsonmodel import QJsonModel
 from .plots import DataSetPlotter
 from ..utils import load_json_ordered
 

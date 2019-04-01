@@ -1,4 +1,4 @@
-from ..qjsonmodel import QJsonModel
+from .qjsonmodel import QJsonModel
 from ..utils import load_json_ordered
 from ..qt import *
 
