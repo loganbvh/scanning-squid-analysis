@@ -121,6 +121,9 @@ def scan_to_arrays(scan_data: Any, ureg: Optional[Any]=None, real_units: Optiona
         #: Tell the UnitRegistry what a Phi0 is, and that ohm and Ohm are the same thing.
         with open('squid_units.txt', 'w') as f:
             f.write('Phi0 = 2.067833831e-15 * Wb\n')
+            f.write('Phi_0 = Phi0\n')
+            f.write('phi0 = Phi0\n')
+            f.write('phi_0 = Phi0\n')
             f.write('Ohm = ohm\n')
         ureg.load_definitions('./squid_units.txt')
     Q_ = ureg.Quantity
@@ -147,7 +150,8 @@ def scan_to_arrays(scan_data: Any, ureg: Optional[Any]=None, real_units: Optiona
             arrays.update({ax.upper(): grid, ax: vector})
     return arrays
 
-def td_to_arrays(td_data: Any, ureg: Optional[Any]=None, real_units: Optional[bool]=True) -> Dict[str, Any]:
+def td_to_arrays(td_data: Any, ureg: Optional[Any]=None,
+                    real_units: Optional[bool]=True, z_unit: Optional[str]=None) -> Dict[str, Any]:
     """Extracts scan data from DataSet and converts to requested units.
 
     Args:
@@ -155,6 +159,9 @@ def td_to_arrays(td_data: Any, ureg: Optional[Any]=None, real_units: Optional[bo
         ureg: pint UnitRegistry, manages physical units.
         real_units: If True, converts data from DAQ voltage into
             units specified in measurement configuration file.
+        z_unit: String describing quantity with dimensions of length.
+            If z_unit is not None, scanner z DAQ ao voltage will be converted to z_unit
+            according to scanner constant defined in microscope configuration file.
     Returns:
         Dict: arrays
             Dict of measured data in requested units.
@@ -171,7 +178,7 @@ def td_to_arrays(td_data: Any, ureg: Optional[Any]=None, real_units: Optional[bo
     meta = td_data.metadata['loop']['metadata']
     h = [Q_(val).to('V').magnitude for val in meta['range']]
     dV = Q_(meta['dV']).to('V').magnitude
-    heights = np.linspace(h[0], h[1], int((h[1]-h[0])/dV))
+    heights = np.linspace(h[0], h[1], int((h[1]-h[0])/dV)) * ureg('V')
     arrays = {}
     #arrays = {'height': heights * ureg('V')}
     for ch, info in meta['channels'].items():
@@ -182,5 +189,8 @@ def td_to_arrays(td_data: Any, ureg: Optional[Any]=None, real_units: Optional[bo
             arrays.update({ch: (Q_(pre) * array[:last_idx]).to(info['unit'])})
         else:
             arrays.update({ch: array[:last_idx]})
-    arrays.update({'height': heights[:last_idx] * ureg('V')})
+    if real_units and z_unit is not None:
+        bendc = td_data.metadata['station']['instruments']['benders']['metadata']['constants']
+        heights = (heights * Q_(bendc['z'])).to(z_unit)
+    arrays.update({'height': heights[:last_idx]})
     return arrays

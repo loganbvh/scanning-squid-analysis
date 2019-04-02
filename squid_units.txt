@@ -1,2 +1,5 @@
 Phi0 = 2.067833831e-15 * Wb
+Phi_0 = Phi0
+phi0 = Phi0
+phi_0 = Phi0
 Ohm = ohm
