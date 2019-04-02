@@ -918,21 +918,15 @@ class DataSetPlotter(PlotWidget):
         self.units.returnPressed.connect(self.replot)
         arrays_layout.addWidget(self.units, 1, 0)
 
-        self.xy_units_box = QtWidgets.QCheckBox('real x-y units')
+        self.xy_units_box = QtWidgets.QCheckBox('real length units')
         self.xy_units_box.setChecked(False)
         self.xy_units = QtWidgets.QLineEdit()
         self.xy_units.setText('Length unit')
         self.xy_units.setEnabled(False)
-        arrays_layout.addWidget(self.xy_units_box, 0, 1)
-        arrays_layout.addWidget(self.xy_units, 1, 1)
-        # xy_units_widget = QtWidgets.QWidget()
-        # xy_units_layout = QtWidgets.QVBoxLayout()
-        # xy_units_widget.setLayout(xy_units_layout)
-        # xy_units_layout.addWidget(self.xy_units_box)
-        # xy_units_layout.addWidget(self.xy_units)
-        #arrays_layout.addWidget(xy_units_widget)
         self.xy_units_box.stateChanged.connect(self.update_xy_units)
         self.xy_units.returnPressed.connect(self.replot)
+        arrays_layout.addWidget(self.xy_units_box, 0, 1)
+        arrays_layout.addWidget(self.xy_units, 1, 1)
 
     def get_arrays(self):
         """Create a dict of arrays from self.dataset.
