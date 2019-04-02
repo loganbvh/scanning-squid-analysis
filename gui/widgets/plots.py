@@ -143,7 +143,7 @@ class PlotWidget(QtWidgets.QWidget):
         xy_btns[0].setChecked(True)
         backsub_layout.addWidget(self.line_backsub_btn)
         for i, b in enumerate(xy_btns):
-            b.setDisabled(True)
+            b.setEnabled(False)
             backsub_layout.addWidget(b)
             self.line_backsub_radio.addButton(b, i)
         
@@ -254,12 +254,12 @@ class PlotWidget(QtWidgets.QWidget):
     def plot_arrays(self, xs, ys, zs=None, title=''):
         """Plots data based on dimension and all user-selected options, transforms, etc.
         Args:
-            xs (tuple[str, np.ndarray[pint.Quantity]]): x data in the form of a
-                tuple of (name, 0D or 1D array of pint.Quantities).
-            ys (tuple[str, np.ndarray[pint.Quantity]]): y data in the form of a
-                tuple of (name, 0D or 1D array of pint.Quantities).
-            zs (optional, tuple[str, np.ndarray[pint.Quantity]]): None if plotting 1D data, else
-                z data in the form of a tuple of (name, 2D array of pint.Quantities). Default: None.
+            xs (list[str, np.ndarray[pint.Quantity]]): x data in the form of a
+                list of [name, 0D or 1D array of pint.Quantities].
+            ys (list[str, np.ndarray[pint.Quantity]]): y data in the form of a
+                list of [name, 0D or 1D array of pint.Quantities].
+            zs (optional, list[str, np.ndarray[pint.Quantity]]): None if plotting 1D data, else
+                z data in the form of a list of [name, 2D array of pint.Quantities]. Default: None.
             title (optional, str): Title for matplotlib figure. Default: ''.
         """
         self.fig_title = title
@@ -272,12 +272,12 @@ class PlotWidget(QtWidgets.QWidget):
         self.pyqt_imview.hide()
         if zs is None: # 1d data
             self.line_backsub_btn.setChecked(False)
-            self.line_backsub_btn.setDisabled(True)
+            self.line_backsub_btn.setEnabled(False)
             self.pyqt_imview.x_slice_widget.hide()
             self.pyqt_imview.y_slice_widget.hide()
             self.plot_1d(xs, ys)
         else: # 2d data
-            self.line_backsub_btn.setDisabled(False)
+            self.line_backsub_btn.setEnabled(True)
             angle = self.rotate_slider.value_box.value() # degrees
             if self.slice_state == 0:
                 slice_state = None
@@ -296,10 +296,10 @@ class PlotWidget(QtWidgets.QWidget):
     def plot_1d(self, xs, ys):
         """Plot 1D data according to user-selected options, transformations, etc.
         Args:
-            xs (tuple[str, np.ndarray[pint.Quantity]]): x data in the form of a
-                tuple of (name, 0D or 1D array of pint.Quantities).
-            ys (tuple[str, np.ndarray[pint.Quantity]]): y data in the form of a
-                tuple of (name, 0D or 1D array of pint.Quantities).
+            xs (list[str, np.ndarray[pint.Quantity]]): x data in the form of a
+                list of [name, 0D or 1D array of pint.Quantities].
+            ys (list[str, np.ndarray[pint.Quantity]]): y data in the form of a
+                list of [name, 0D or 1D array of pint.Quantities].
         """
         label = ys[0]
         xlabel = f'{xs[0]} [{xs[1].units}]'
@@ -320,10 +320,10 @@ class PlotWidget(QtWidgets.QWidget):
     def plot_1d_qt(self, xs, ys, xlabel, ylabel, label):
         """Plot 1D data on self.pyqt_plot.
         Args:
-            xs (tuple[str, np.ndarray[pint.Quantity]]): x data in the form of a
-                tuple of (name, 0D or 1D array of pint.Quantities).
-            ys (tuple[str, np.ndarray[pint.Quantity]]): y data in the form of a
-                tuple of (name, 0D or 1D array of pint.Quantities).
+            xs (list[str, np.ndarray[pint.Quantity]]): x data in the form of a
+                list of [name, 0D or 1D array of pint.Quantities].
+            ys (list[str, np.ndarray[pint.Quantity]]): y data in the form of a
+                list of [name, 0D or 1D array of pint.Quantities].
             xlabel (str): x-axis label.
             ylabel (str): y-axis label.
             label (str): Label for legend.
@@ -336,10 +336,10 @@ class PlotWidget(QtWidgets.QWidget):
     def plot_1d_mpl(self, xs, ys, xlabel, ylabel, marker, label):
         """Plot 1D data on self.fig.
         Args:
-            xs (tuple[str, np.ndarray[pint.Quantity]]): x data in the form of a
-                tuple of (name, 0D or 1D array of pint.Quantities).
-            ys (tuple[str, np.ndarray[pint.Quantity]]): y data in the form of a
-                tuple of (name, 0D or 1D array of pint.Quantities).
+            xs (list[str, np.ndarray[pint.Quantity]]): x data in the form of a
+                list of [name, 0D or 1D array of pint.Quantities].
+            ys (list[str, np.ndarray[pint.Quantity]]): y data in the form of a
+                list of [name, 0D or 1D array of pint.Quantities].
             xlabel (str): x-axis label.
             ylabel (str): y-axis label.
             marker (str): Plot point marker.
@@ -357,12 +357,12 @@ class PlotWidget(QtWidgets.QWidget):
     def plot_2d(self, xs, ys, zs, cmap=None, angle=0, slice_state=None):
         """Plot 2D data according to user-selected options, transformations, etc.
         Args:
-            xs (tuple[str, np.ndarray[pint.Quantity]]): x data in the form of a
-                tuple of (name, 0D or 1D array of pint.Quantities).
-            ys (tuple[str, np.ndarray[pint.Quantity]]): y data in the form of a
-                tuple of (name, 0D or 1D array of pint.Quantities).
-            zs (tuple[str, np.ndarray[pint.Quantity]]): z data in the form of a tuple of
-                (name, 2D array of pint.Quantities).
+            xs (list[str, np.ndarray[pint.Quantity]]): x data in the form of a
+                list of [name, 0D or 1D array of pint.Quantities).
+            ys (list[str, np.ndarray[pint.Quantity]]): y data in the form of a
+                list of [name, 0D or 1D array of pint.Quantities).
+            zs (list[str, np.ndarray[pint.Quantity]]): z data in the form of a list of
+                [name, 2D array of pint.Quantities).
             cmap (optional, str): Name of matplotlib colormap. Default: None.
             angle (optional, float): Angle by which to rotate image (degrees). Default: 0.
             slice_state (optional, str): Requested 1D slice state, in (None, 'x', 'y'). Default: None.
@@ -386,12 +386,12 @@ class PlotWidget(QtWidgets.QWidget):
     def plot_2d_qt(self, xs, ys, zs, xlabel, ylabel, zlabel, angle=0):
         """Plot 2D data on self.pyqt_imview.
         Args:
-            xs (tuple[str, np.ndarray[pint.Quantity]]): x data in the form of a
-                tuple of (name, 0D or 1D array of pint.Quantities).
-            ys (tuple[str, np.ndarray[pint.Quantity]]): y data in the form of a
-                tuple of (name, 0D or 1D array of pint.Quantities).
-            zs (tuple[str, np.ndarray[pint.Quantity]]): z data in the form of a tuple of
-                (name, 2D array of pint.Quantities).
+            xs (list[str, np.ndarray[pint.Quantity]]): x data in the form of a
+                list of [name, 0D or 1D array of pint.Quantities).
+            ys (list[str, np.ndarray[pint.Quantity]]): y data in the form of a
+                list of [name, 0D or 1D array of pint.Quantities).
+            zs (list[str, np.ndarray[pint.Quantity]]): z data in the form of a list of
+                [name, 2D array of pint.Quantities).
             xlabel (str): x-axis label.
             ylabel (str): y-axis label.
             zlabel (str): z-axis label.
@@ -414,12 +414,12 @@ class PlotWidget(QtWidgets.QWidget):
     def plot_2d_mpl(self, xs, ys, zs, xlabel, ylabel, zlabel, cmap=None, angle=0, slice_state=None, **kwargs):
         """Plot 2D data on self.fig, with options determined by keyword args.
         Args:
-            xs (tuple[str, np.ndarray[pint.Quantity]]): x data in the form of a
-                tuple of (name, 0D or 1D array of pint.Quantities).
-            ys (tuple[str, np.ndarray[pint.Quantity]]): y data in the form of a
-                tuple of (name, 0D or 1D array of pint.Quantities).
-            zs (tuple[str, np.ndarray[pint.Quantity]]): z data in the form of a tuple of
-                (name, 2D array of pint.Quantities).
+            xs (list[str, np.ndarray[pint.Quantity]]): x data in the form of a
+                list of [name, 0D or 1D array of pint.Quantities).
+            ys (list[str, np.ndarray[pint.Quantity]]): y data in the form of a
+                list of [name, 0D or 1D array of pint.Quantities).
+            zs (list[str, np.ndarray[pint.Quantity]]): z data in the form of a list of
+                [name, 2D array of pint.Quantities).
             xlabel (str): x-axis label.
             ylabel (str): y-axis label.
             zlabel (str): z-axis label.
@@ -699,8 +699,31 @@ class PlotWidget(QtWidgets.QWidget):
         """
         if self.current_data is not None:
             xs, ys, zs = self.current_data[:]
+            if self.xy_units_box.isChecked():
+                try:
+                    xs[1].ito(self.xy_units.text())
+                except:
+                    self.xy_units.setText(str(xs[1].units))
+            if zs is None:
+                name = ys[0]
+                try:
+                    ys[1].ito(self.units.text())
+                except:
+                    self.units.setText(str(ys[1].units))
+            else:
+                name = zs[0]
+                if self.xy_units_box.isChecked():
+                    try:
+                        ys[1].ito(self.xy_units.text())
+                    except:    
+                        self.xy_units.setText(str(ys[1].units))
+                try:
+                    zs[1].ito(self.units.text())
+                except:
+                    self.units.setText(str(zs[1].units))
             name = ys[0] if zs is None else zs[0]
             self.fig_title = f"{self.dataset.metadata['location']} [{name}]"
+            self.current_data = [xs, ys, zs]
             self.subtract_background()
 
     def set_slice(self, idx=None, replot=True):
@@ -736,12 +759,8 @@ class PlotWidget(QtWidgets.QWidget):
     def update_line_by_line(self):
         """Enable/disable line-by-line background subtraction based on self.line_backsub_btn.
         """
-        if self.line_backsub_btn.isChecked():
-            self.x_line_backsub_btn.setDisabled(False)
-            self.y_line_backsub_btn.setDisabled(False)
-        else:
-            self.x_line_backsub_btn.setDisabled(True)
-            self.y_line_backsub_btn.setDisabled(True)
+        self.x_line_backsub_btn.setEnabled(self.line_backsub_btn.isChecked())
+        self.y_line_backsub_btn.setEnabled(self.line_backsub_btn.isChecked())
         self.replot()
 
     def subtract_background(self, idx=None):
@@ -888,26 +907,32 @@ class DataSetPlotter(PlotWidget):
         self.arrays = None
         self.indep_vars = None
         arrays_widget = QtWidgets.QGroupBox('Arrays')
-        arrays_layout = QtWidgets.QHBoxLayout(arrays_widget)
+        arrays_layout = QtWidgets.QGridLayout(arrays_widget)
         arrays_widget.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum)
         self.selector = QtWidgets.QComboBox()
-        arrays_layout.addWidget(self.selector)
+        arrays_layout.addWidget(self.selector, 0, 0)
         self.option_layout.insertWidget(0, arrays_widget)
         self.selector.currentIndexChanged.connect(self.set_plot)
+        self.units = QtWidgets.QLineEdit('Array unit')
+        self.units.setEnabled(False)
+        self.units.returnPressed.connect(self.replot)
+        arrays_layout.addWidget(self.units, 1, 0)
 
         self.xy_units_box = QtWidgets.QCheckBox('real x-y units')
         self.xy_units_box.setChecked(False)
         self.xy_units = QtWidgets.QLineEdit()
-        self.xy_units.setText('Enter length unit')
-        self.xy_units.setDisabled(True)
-        xy_units_widget = QtWidgets.QWidget()
-        xy_units_layout = QtWidgets.QVBoxLayout()
-        xy_units_widget.setLayout(xy_units_layout)
-        xy_units_layout.addWidget(self.xy_units_box)
-        xy_units_layout.addWidget(self.xy_units)
-        arrays_layout.addWidget(xy_units_widget)
+        self.xy_units.setText('Length unit')
+        self.xy_units.setEnabled(False)
+        arrays_layout.addWidget(self.xy_units_box, 0, 1)
+        arrays_layout.addWidget(self.xy_units, 1, 1)
+        # xy_units_widget = QtWidgets.QWidget()
+        # xy_units_layout = QtWidgets.QVBoxLayout()
+        # xy_units_widget.setLayout(xy_units_layout)
+        # xy_units_layout.addWidget(self.xy_units_box)
+        # xy_units_layout.addWidget(self.xy_units)
+        #arrays_layout.addWidget(xy_units_widget)
         self.xy_units_box.stateChanged.connect(self.update_xy_units)
-        self.xy_units.returnPressed.connect(self.update)
+        self.xy_units.returnPressed.connect(self.replot)
 
     def get_arrays(self):
         """Create a dict of arrays from self.dataset.
@@ -925,16 +950,29 @@ class DataSetPlotter(PlotWidget):
                 self.arrays = scan_to_arrays(self.dataset)
             self.indep_vars = ('x', 'y')
         elif '_td_cap_' in self.dataset.location:
-            self.arrays = td_to_arrays(self.dataset)
+            if self.xy_units_box.isChecked():
+                try:
+                    self.arrays = td_to_arrays(self.dataset, z_unit=self.xy_units.text())
+                except:
+                    self.arrays = td_to_arrays(self.dataset, z_unit='um')
+                    self.xy_units.setText('um')
+            else:
+                self.arrays = td_to_arrays(self.dataset)
             self.indep_vars = ('height',)
+        old_text = self.selector.currentText()
+        old_units = self.units.text()
         self.selector.clear()
-        items = []
         for name in self.arrays.keys():
             if name.lower() not in self.indep_vars:
-                items.append(name)
                 self.selector.addItem(name)
-        self.selector.setCurrentIndex(0)
-        self.set_plot(0)
+        if old_text and old_text in self.arrays.keys():
+            self.selector.setCurrentText(old_text)
+            self.set_plot_from_name(old_text)
+            if 'Array' not in old_units:
+                self.units.setText(old_units)
+        else:
+            self.selector.setCurrentIndex(0)
+            self.set_plot_from_name(self.selector.currentText())
 
     def set_plot(self, idx):
         """Set current plot to the given index of self.selector.
@@ -955,12 +993,26 @@ class DataSetPlotter(PlotWidget):
             xs = [self.indep_vars[0], self.arrays[self.indep_vars[0]]]
             ys = [name, self.arrays[name]]
             zs = None
+            try:
+                unit = self.units.text()
+                ys[1].ito(unit)
+            except:
+                unit = ys[1].units
+            self.units.setText(str(unit))
+            self.units.setEnabled(True)
         elif len(self.indep_vars) == 2:
             xs, ys = ([var, self.arrays[var]] for var in self.indep_vars)
             z = self.arrays[name]
             # set nan values to the non-nan min to avoid issues with plotting
             z[np.isnan(z)] = np.nanmin(z) * z.units
             zs = [name, z]
+            try:
+                unit = self.units.text()
+                zs[1].ito(unit)
+            except:
+                unit = zs[1].units
+            self.units.setText(str(unit))
+            self.units.setEnabled(True)
         title = ''
         if self.dataset is not None:
             title = f"{self.dataset.metadata['location']} [{name}]"
@@ -973,21 +1025,19 @@ class DataSetPlotter(PlotWidget):
         """
         if self.xy_units_box.isChecked():
             self.xy_units.setText('um')
-            self.xy_units.setDisabled(False)
+            self.xy_units.setEnabled(True)
         else:
-            self.xy_units.setText('Enter length unit')
-            self.xy_units.setDisabled(True)
-        idx = self.selector.currentIndex()
-        self.update(idx=idx)
-        self.selector.setCurrentIndex(idx)
+            self.xy_units.setText('Length unit')
+            self.xy_units.setEnabled(False)
+        self.update()
 
-    def update(self, dataset=None, idx=0):
+    def update(self, dataset=None):
         """Update arrays and plot from dataset.
         """
         self.dataset = dataset or self.dataset
         self.get_arrays()
         self.backsub_radio.button(0).setChecked(True)
-        self.set_plot(idx)
+        self.set_plot_from_name(self.selector.currentText())
 
 class ImageView(pg.ImageView):
     """pyqtgraph ImageView wrapper.
