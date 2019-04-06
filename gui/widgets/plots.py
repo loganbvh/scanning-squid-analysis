@@ -69,7 +69,7 @@ class PlotWidget(QtWidgets.QWidget):
         self.pyqt_splitter.hide()
         self.pyqt_splitter.addWidget(pyqt_top_widgets)
         self.pyqt_splitter.addWidget(pyqt_bottom_widgets)
-        self.pyqt_splitter.setStretchFactor(1,1.5)
+        #self.pyqt_splitter.setStretchFactor(1,1.5)
 
         # plot options
         self.option_layout = QtWidgets.QHBoxLayout()
@@ -403,6 +403,13 @@ class PlotWidget(QtWidgets.QWidget):
         self.pyqt_imview.setImage(z, pos=pos, scale=scale)
         self.pyqt_imview.setLabels(xlabel=xlabel, ylabel=ylabel, zlabel=zlabel)
         self.pyqt_imview.autoRange()
+        # set histogram range manually so that extra pixels added when rotating don't screw up histogram limits
+        if angle == 0:
+            self.pyqt_imview.ui.histogram.autoHistogramRange()
+            self.pyqt_imview.hist_range = self.pyqt_imview.ui.histogram.vb.targetRange()[0]
+        else:
+            self.pyqt_imview.ui.histogram.vb.enableAutoRange(self.pyqt_imview.ui.histogram.vb.XAxis, False)
+            self.pyqt_imview.ui.histogram.vb.setXRange(*self.pyqt_imview.hist_range, 0)
         self.pyqt_imview.set_histogram(self.get_opt('histogram'))
         grid = self.get_opt('grid')
         self.pyqt_imview.getView().showGrid(grid,grid)
@@ -1042,6 +1049,7 @@ class ImageView(pg.ImageView):
         self.view.setAspectLocked(lock=True)
         self.view.invertY(False)
         self.set_histogram(True)
+        self.hist_range = None
         histogram_action = QtWidgets.QAction('Histogram', self)
         histogram_action.setCheckable(True)
         histogram_action.triggered.connect(self.set_histogram)
@@ -1162,7 +1170,6 @@ class SliceableImageView(ImageView):
         super().__init__(**kwargs)
         self.search_mode = False
         self._connect_signals()
-        self.angle = 0
         self.y_cross_index = 0
         self.x_cross_index = 0
         self.x_slice_widget = SlicePlotWidget()
@@ -1188,7 +1195,7 @@ class SliceableImageView(ImageView):
 
     def setImage(self, *args, **kwargs):
         """Set the image and adjust ViewBox, etc.
-        *args and **kwargs passed to ImageItem constructor.
+        *args and **kwargs passed to ImageItem.setImage().
         """
         if 'pos' in kwargs:
             self._x0, self._y0 = kwargs['pos']
@@ -1206,7 +1213,7 @@ class SliceableImageView(ImageView):
 
         if self.imageItem.image is not None:
             (min_x, max_x), (min_y, max_y) = self.imageItem.getViewBox().viewRange()
-            mid_x, mid_y = (max_x + min_x)/2., (max_y + min_y)/2.
+            mid_x, mid_y = (max_x + min_x) / 2, (max_y + min_y) / 2
         else:
             mid_x, mid_y = 0, 0
 
