@@ -217,8 +217,6 @@ class PlotWidget(QtWidgets.QWidget):
         bins_layout.addWidget(self.bins_box)
         opt_layout.addWidget(bins_widget)
 
-        # opt_layout.addWidget(QtWidgets.QLabel('bins:'))
-        # opt_layout.addWidget(self.bins_box)
         self.option_layout.addWidget(opt_group)
         self.opt_checks['histogram'].stateChanged.connect(lambda val: self.bins_box.setEnabled(val))
         self.opt_checks['histogram'].stateChanged.connect(lambda val: bins_widget.show() if val else bins_widget.hide())
@@ -301,6 +299,7 @@ class PlotWidget(QtWidgets.QWidget):
             ys (list[str, np.ndarray[pint.Quantity]]): y data in the form of a
                 list of [name, 0D or 1D array of pint.Quantities].
         """
+        self.bins_box.setEnabled(False)
         label = ys[0]
         xlabel = f'{xs[0]} [{xs[1].units}]'
         ylabel = f'{ys[0]} [{ys[1].units}]'
@@ -397,6 +396,7 @@ class PlotWidget(QtWidgets.QWidget):
             zlabel (str): z-axis label.
             angle (optional, float): Angle by which to rotate image (degrees). Default: 0.
         """
+        self.bins_box.setEnabled(False)
         pos = np.nanmin(xs[1][0].magnitude), np.nanmin(ys[1][0].magnitude)
         scale = np.ptp(xs[1].magnitude) / zs[1].shape[0], np.ptp(ys[1].magnitude) / zs[1].shape[1]
         z = rotate(zs[1].magnitude.T, angle, cval=np.nanmin(zs[1].magnitude))
@@ -404,12 +404,10 @@ class PlotWidget(QtWidgets.QWidget):
         self.pyqt_imview.setLabels(xlabel=xlabel, ylabel=ylabel, zlabel=zlabel)
         self.pyqt_imview.autoRange()
         # set histogram range manually so that extra pixels added when rotating don't screw up histogram limits
-        if angle == 0:
-            self.pyqt_imview.ui.histogram.autoHistogramRange()
-            self.pyqt_imview.hist_range = self.pyqt_imview.ui.histogram.vb.targetRange()[0]
-        else:
-            self.pyqt_imview.ui.histogram.vb.enableAutoRange(self.pyqt_imview.ui.histogram.vb.XAxis, False)
-            self.pyqt_imview.ui.histogram.vb.setXRange(*self.pyqt_imview.hist_range, 0)
+        self.pyqt_imview.ui.histogram.vb.enableAutoRange(self.pyqt_imview.ui.histogram.vb.XAxis, False)
+        hist = self.pyqt_imview.imageItem.getHistogram()[1]
+        rng = -np.sort(hist)[:-1].max(), 0
+        self.pyqt_imview.ui.histogram.vb.setXRange(*rng, 0.05)
         self.pyqt_imview.set_histogram(self.get_opt('histogram'))
         grid = self.get_opt('grid')
         self.pyqt_imview.getView().showGrid(grid,grid)
@@ -435,6 +433,7 @@ class PlotWidget(QtWidgets.QWidget):
             slice_state (optional, str): Requested 1D slice state, in (None, 'x', 'y'). Default: None.
             kwargs (optional, dict): Keyword arguments passed to plt.pcolormesh constructor.
         """
+        self.bins_box.setEnabled(self.get_opt('histogram'))
         if slice_state is None:
             plt.rcParams.update({'font.size': font_size})
             self.fig.subplots_adjust(top=0.9, bottom=0.15, left=0.0, right=1, hspace=0.0, wspace=0)
@@ -1014,11 +1013,11 @@ class DataSetPlotter(PlotWidget):
                 unit = zs[1].units
             self.units.setText(str(unit))
             self.units.setEnabled(True)
-        title = ''
+        self.fig_title = ''
         if self.dataset is not None:
-            title = f"{self.dataset.metadata['location']} [{name}]"
+            self.fig_title = f"{self.dataset.metadata['location']} [{name}]"
         self.current_data = [xs, ys, zs]
-        self.plot_arrays(xs, ys, zs, title)
+        #self.plot_arrays(xs, ys, zs, title)
         self.subtract_background()
 
     def update_xy_units(self):
