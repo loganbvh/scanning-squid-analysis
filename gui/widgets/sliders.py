@@ -136,8 +136,7 @@ class SliderWidget(QtWidgets.QWidget):
         self.slider.slider.setValue(val)
 
 class VertSlider(AxesWidget):
-    """
-    A slider representing a floating point range.
+    """A slider representing a floating point range.
     For the slider to remain responsive you must maintain a
     reference to it.
     """
@@ -171,7 +170,6 @@ class VertSlider(AxesWidget):
             start_at_bottom (optional, bool): Sets whether the filled rectangle starts at the lower or upper
                 end of the axis. Default: True
             **kwargs: Passed to self.poly, see above.
-
         """
         super().__init__(ax)
         self.valmin = valmin
@@ -279,9 +277,7 @@ class VertSlider(AxesWidget):
 
     def on_changed(self, func):
         """When the slider value is changed, call *func* with the new
-        slider position.
-
-        A connection id is returned which can be used to disconnect
+        slider position. A connection id is returned which can be used to disconnect.
         """
         cid = self.cnt
         self.observers[cid] = func

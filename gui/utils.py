@@ -6,8 +6,10 @@ import json
 
 def load_json_ordered(filename: str) -> OrderedDict:
     """Loads json file as an ordered dict.
+
     Args:
         filename: Path to json file to be loaded.
+
     Returns:
         OrderedDict: odict
             OrderedDict containing data from json file.
@@ -162,6 +164,7 @@ def td_to_arrays(td_data: Any, ureg: Optional[Any]=None,
         z_unit: String describing quantity with dimensions of length.
             If z_unit is not None, scanner z DAQ ao voltage will be converted to z_unit
             according to scanner constant defined in microscope configuration file.
+            
     Returns:
         Dict: arrays
             Dict of measured data in requested units.

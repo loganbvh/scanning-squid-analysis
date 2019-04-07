@@ -62,6 +62,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def add_dock(self, widget, name, location, min_width=None):
         """Add a QDockWidget to the main window.
+        
         Args:
             widget (QWidget): Widget to add to dock.
             name (str): Name to give dock.

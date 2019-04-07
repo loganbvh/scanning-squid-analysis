@@ -318,6 +318,7 @@ class PlotWidget(QtWidgets.QWidget):
 
     def plot_1d_qt(self, xs, ys, xlabel, ylabel, label):
         """Plot 1D data on self.pyqt_plot.
+
         Args:
             xs (list[str, np.ndarray[pint.Quantity]]): x data in the form of a
                 list of [name, 0D or 1D array of pint.Quantities].
@@ -334,6 +335,7 @@ class PlotWidget(QtWidgets.QWidget):
 
     def plot_1d_mpl(self, xs, ys, xlabel, ylabel, marker, label):
         """Plot 1D data on self.fig.
+
         Args:
             xs (list[str, np.ndarray[pint.Quantity]]): x data in the form of a
                 list of [name, 0D or 1D array of pint.Quantities].
@@ -355,6 +357,7 @@ class PlotWidget(QtWidgets.QWidget):
 
     def plot_2d(self, xs, ys, zs, cmap=None, angle=0, slice_state=None):
         """Plot 2D data according to user-selected options, transformations, etc.
+
         Args:
             xs (list[str, np.ndarray[pint.Quantity]]): x data in the form of a
                 list of [name, 0D or 1D array of pint.Quantities).
@@ -384,6 +387,7 @@ class PlotWidget(QtWidgets.QWidget):
 
     def plot_2d_qt(self, xs, ys, zs, xlabel, ylabel, zlabel, angle=0):
         """Plot 2D data on self.pyqt_imview.
+
         Args:
             xs (list[str, np.ndarray[pint.Quantity]]): x data in the form of a
                 list of [name, 0D or 1D array of pint.Quantities).
@@ -418,6 +422,7 @@ class PlotWidget(QtWidgets.QWidget):
 
     def plot_2d_mpl(self, xs, ys, zs, xlabel, ylabel, zlabel, cmap=None, angle=0, slice_state=None, **kwargs):
         """Plot 2D data on self.fig, with options determined by keyword args.
+
         Args:
             xs (list[str, np.ndarray[pint.Quantity]]): x data in the form of a
                 list of [name, 0D or 1D array of pint.Quantities).
@@ -821,6 +826,7 @@ class PlotWidget(QtWidgets.QWidget):
 
     def export_mpl(self, dpi=300):
         """Open dialog to export matplotlib figure.
+
         Args:
             dpi (int): DPI with which to save the figure.
         """
@@ -833,6 +839,7 @@ class PlotWidget(QtWidgets.QWidget):
 
     def export_qt(self, width=1200):
         """Open dialog to export pyqtgraph figure.
+
         Args:
             width (int): Figure width in pixels (I think).
         Note: this is not currently used by the GUI because the pyqtgraph figures are ugly.
@@ -877,11 +884,13 @@ class PlotWidget(QtWidgets.QWidget):
     def _subtract_line_by_line(self, zdata, axis, func):
         """Perform line-by-line background subtraction of `zdata` along axis `axis` according
         to callable `func`.
+
         Args:
             zdata (np.ndarray): 2D data for which you want to do background subtraction.
             axis (int): Axis along which you want to do line-by-line background subtraction.
             func (callable): Function applied to each line to calculate the value to subtract
                 (e.g. np.min, np.mean, etc.)
+                
         Returns:
             np.ndarray: zdata with background subtracted line-by-line.
         """
@@ -895,9 +904,11 @@ class PlotWidget(QtWidgets.QWidget):
 
     def _subtract_line(self, x, y):
         """Subtract the best-fit line `slope * x + offset` from array `y`.
+
         Args:
             x (np.ndarray): OD or 1D array of x values.
             y (np.ndarray): 0D or 1D array of y values.
+
         Returns:
             np.ndarray: y with best-fit line subtracted.
         """
@@ -976,6 +987,7 @@ class DataSetPlotter(PlotWidget):
 
     def set_plot(self, idx):
         """Set current plot to the given index of self.selector.
+
         Args:
             idx (int): Index of requested plot.
         """
@@ -986,6 +998,7 @@ class DataSetPlotter(PlotWidget):
 
     def set_plot_from_name(self, name):
         """Set current plot by name.
+
         Args:
             name (str): Name of requested plot/array.
         """
@@ -1057,6 +1070,7 @@ class ImageView(pg.ImageView):
 
     def set_histogram(self, visible):
         """Show or hide the histogram.
+
         Args:
             visible (bool): Whether you want the histogram to be visible.
         """
@@ -1067,6 +1081,7 @@ class ImageView(pg.ImageView):
 
     def set_data(self, data):
         """Set the image data.
+
         Args:
             data (np.ndarray): 2D array of iamge data.
         """
@@ -1074,6 +1089,7 @@ class ImageView(pg.ImageView):
 
     def set_cmap(self, name):
         """Set the colormap to one of pyqtgraph's presets.
+
         Args:
             name (str): Name of preset colormap.
         """
@@ -1096,6 +1112,12 @@ class SlicePlotWidget(pg.PlotWidget):
         self.scene().sigMouseMoved.connect(self.handle_mouse_move)
 
     def set_data(self, data, **kwargs):
+        """Set plot data.
+
+        Args:
+            data (np.ndarray): Data to plot
+            **kwargs: Passed to pg.PlotWidget.plot()
+        """
         if data is not None and len(data) > 0 and np.isfinite(data).all():
             self.clear()
             self.plot(data, **kwargs)
@@ -1146,6 +1168,8 @@ class SlicePlotWidget(pg.PlotWidget):
             self.crosshair_moved.emit(pt_x, pt_y)
 
     def add_crosshair(self):
+        """Add infinite vertical and horizontal lines that track mouse.
+        """
         self.h_line = pg.InfiniteLine(angle=0, movable=False)
         self.v_line = pg.InfiniteLine(angle=90, movable=False)
         self.addItem(self.h_line, ignoreBounds=False)
@@ -1158,6 +1182,8 @@ class SlicePlotWidget(pg.PlotWidget):
         self.cross_section_enabled = True
 
     def hide_crosshair(self):
+        """Hide the crosshair lines.
+        """
         self.removeItem(self.h_line)
         self.removeItem(self.v_line)
         self.cross_section_enabled = False
