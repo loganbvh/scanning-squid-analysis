@@ -15,7 +15,7 @@ class QJupyterWidget(RichIPythonWidget):
         super().__init__(*args,**kwargs)
         self.kernel_manager = kernel_manager = QtInProcessKernelManager()
         kernel_manager.start_kernel()
-        kernel_manager.kernel.gui = 'qt4'
+        kernel_manager.kernel.gui = 'qt'
         self.kernel_client = kernel_client = self._kernel_manager.client()
         kernel_client.start_channels()
 
