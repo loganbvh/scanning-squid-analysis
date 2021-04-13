@@ -1,12 +1,13 @@
 from ..qt import QtGui, QtWidgets
 
+
 class ItemComboBox(QtWidgets.QComboBox):
     def go_to_item(self, item):
         idx = self.findText(item)
         if idx >= 0:
             self.setCurrentIndex(idx)
         else:
-            raise ValueError('No item %d' % idx)
+            raise ValueError("No item %d" % idx)
 
 
 class NoEditItem(QtGui.QStandardItem):
