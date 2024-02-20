@@ -1,25 +1,21 @@
-from matplotlib.figure import Figure
-from matplotlib.collections import LineCollection
-from matplotlib import cm
-from matplotlib import colors
-from matplotlib import transforms
+import pickle
+
+import h5py
 import matplotlib.pyplot as plt
-
-
+import numpy as np
+import pyqtgraph as pg
+from matplotlib import cm, colors, transforms
+from matplotlib.collections import LineCollection
+from matplotlib.figure import Figure
 from matplotlib.widgets import Slider
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-import matplotlib.gridspec as gridspec
-import numpy as np
+from scipy.io import savemat
 from scipy.linalg import lstsq
 from scipy.ndimage.interpolation import rotate
-from scipy.io import savemat
-import h5py
-import pyqtgraph.exporters
-import pyqtgraph as pg
-import pickle
+
 from ..qt import *
-from .sliders import SliderWidget, VertSlider
 from ..utils import *
+from .sliders import SliderWidget, VertSlider
 
 plt.style.use("default")
 
