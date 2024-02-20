@@ -4,9 +4,8 @@ from matplotlib import cm
 from matplotlib import colors
 from matplotlib import transforms
 import matplotlib.pyplot as plt
-plt.style.use('seaborn')
-#plt.style.use('ggplot')
-#plt.style.use('default')
+
+
 from matplotlib.widgets import Slider
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.gridspec as gridspec
@@ -22,11 +21,14 @@ from ..qt import *
 from .sliders import SliderWidget, VertSlider
 from ..utils import *
 
-mpl_cmaps = ('viridis', 'plasma', 'inferno', 'magma', 'cividis', 'Greys')
+plt.style.use('default')
+
+mpl_cmaps = ('viridis', 'plasma', 'inferno', 'magma', 'cividis', 'Greys', 'bone')
+mpl_cmaps = mpl_cmaps + tuple(cmap + "_r" for cmap in mpl_cmaps)
 qt_cmaps = ('thermal', 'flame', 'yellowy', 'bipolar', 'grey')#, 'spectrum', 'cyclic', 'greyclip')
 plot_lw = 3
 font_size = 12
-plt.rcParams.update({'font.size': font_size})
+plt.rcParams["font.size"] = font_size
 
 
 __all__ = ['DataSetPlotter']
@@ -41,10 +43,10 @@ class PlotWidget(QtWidgets.QWidget):
         self.exp_data = {}
 
         # matplotlib stuff
-        self.fig = Figure()
+        self.fig = Figure(constrained_layout=True)
         self.fig.patch.set_alpha(1)
-        self.fig.tight_layout()
-        self.fig.subplots_adjust(bottom=0.15)
+        # self.fig.tight_layout()
+        # self.fig.subplots_adjust(bottom=0.15)
         self.canvas = FigureCanvasQTAgg(self.fig)
         self.canvas.setParent(self)
         self.canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -188,7 +190,7 @@ class PlotWidget(QtWidgets.QWidget):
         opt_group.setLayout(opt_layout)
         plot_opts = [
             ('pyqtgraph', False),
-            ('grid', True),
+            ('grid', False),
             ('histogram', False),
         ]
         self.opt_checks = {}
@@ -351,8 +353,8 @@ class PlotWidget(QtWidgets.QWidget):
         ax.set_ylabel(ylabel)
         ax.plot(xs[1].magnitude, ys[1].magnitude, marker, label=label)
         ax.grid(self.get_opt('grid'))
-        self.fig.tight_layout()
-        self.fig.subplots_adjust(top=0.9, bottom=0.15)
+        # self.fig.tight_layout()
+        # self.fig.subplots_adjust(top=0.9, bottom=0.15)
         ax.legend()
 
     def plot_2d(self, xs, ys, zs, cmap=None, angle=0, slice_state=None):
@@ -441,7 +443,7 @@ class PlotWidget(QtWidgets.QWidget):
         self.bins_box.setEnabled(self.get_opt('histogram'))
         if slice_state is None:
             plt.rcParams.update({'font.size': font_size})
-            self.fig.subplots_adjust(top=0.9, bottom=0.15, left=0.0, right=1, hspace=0.0, wspace=0)
+            # self.fig.subplots_adjust(top=0.9, bottom=0.15, left=0.0, right=1, hspace=0.0, wspace=0)
             ax = self.fig.add_subplot(111)
             ax.set_xlabel(xlabel)
             ax.set_ylabel(ylabel)
@@ -486,7 +488,7 @@ class PlotWidget(QtWidgets.QWidget):
                 def update_cval(val):
                     cmin = min_slider.val
                     cmax = max_slider.val
-                    cbar.set_clim([cmin, cmax])
+                    # cbar.set_clim([cmin, cmax])
                     im.set_clim([cmin, cmax])
                     upper.set_ydata(cmax)
                     lower.set_ydata(cmin)
@@ -512,8 +514,8 @@ class PlotWidget(QtWidgets.QWidget):
                 zs[0]: {'array': z.T, 'unit': str(zs[1].units)}
             }
         else: # slicing
-            plt.rcParams.update({'font.size': 10})
-            self.fig.subplots_adjust(top=0.85, bottom=0.05, left=0.0, right=1.0, hspace=0.5, wspace=0.0)
+            # plt.rcParams.update({'font.size': 10})
+            # self.fig.subplots_adjust(top=0.85, bottom=0.05, left=0.0, right=1.0, hspace=0.5, wspace=0.0)
             ax0 = plt.subplot2grid((12,12), (0,3), colspan=6, rowspan=5, fig=self.fig)
             ax0.set_xlabel(xlabel)
             ax0.set_ylabel(ylabel)
@@ -558,7 +560,7 @@ class PlotWidget(QtWidgets.QWidget):
                 def update_cval(val):
                     cmin = min_slider.val
                     cmax = max_slider.val
-                    cbar.set_clim([cmin, cmax])
+                    # cbar.set_clim([cmin, cmax])
                     im.set_clim([cmin, cmax])
                     upper.set_ydata(cmax)
                     lower.set_ydata(cmin)
@@ -696,7 +698,7 @@ class PlotWidget(QtWidgets.QWidget):
                 except ValueError: # vmin == vmax
                     pass
                 self.canvas.draw()
-                self.fig.tight_layout()
+                # self.fig.tight_layout()
             update(0)
             slider.on_changed(update)
             self.exp_data = {
@@ -785,31 +787,31 @@ class PlotWidget(QtWidgets.QWidget):
         xs, ys, zs = self.current_data[:] # copy self.current_data to avoid changing it
         line_by_line = self.line_backsub_btn.isChecked()
         if line_by_line and zs is not None:
-            funcs = (lambda x: 0, np.min, np.max, np.mean, np.median,
+            funcs = (lambda x: 0, np.nanmin, np.nanmax, np.nanmean, np.nanmedian,
                         lambda y, x=xs[1].magnitude: self._subtract_line(x, y))
             axis = self.line_backsub_radio.checkedId()
             z = self._subtract_line_by_line(np.copy(zs[1].magnitude), axis, funcs[idx])
             zs = [zs[0], z * zs[1].units] # restore units after background subtraction
         if idx == 1: # min
             if zs is None:
-                ys = [ys[0], ys[1] - np.min(ys[1])]
+                ys = [ys[0], ys[1] - np.nanmin(ys[1])]
             elif not line_by_line:
-                zs = [zs[0], zs[1] - np.min(zs[1])]
+                zs = [zs[0], zs[1] - np.nanmin(zs[1])]
         elif idx == 2: # max
             if zs is None:
-                ys = [ys[0], ys[1] - np.max(ys[1])]
+                ys = [ys[0], ys[1] - np.nanmax(ys[1])]
             elif not line_by_line:
-                zs = [zs[0], zs[1] - np.max(zs[1])] 
+                zs = [zs[0], zs[1] - np.nanmax(zs[1])] 
         elif idx == 3: # mean
             if zs is None:
-                ys = [ys[0], ys[1] - np.mean(ys[1])]
+                ys = [ys[0], ys[1] - np.nanmean(ys[1])]
             elif not line_by_line:
-                zs = [zs[0], zs[1] - np.mean(zs[1])]
+                zs = [zs[0], zs[1] - np.nanmean(zs[1])]
         elif idx == 4: # median
             if zs is None:
-                ys = [ys[0], ys[1] - ys[1].units * np.median(ys[1])]
+                ys = [ys[0], ys[1] - ys[1].units * np.nanmedian(ys[1])]
             elif not line_by_line:
-                zs = [zs[0], zs[1] - zs[1].units * np.median(np.reshape(zs[1], (-1,1)))]
+                zs = [zs[0], zs[1] - zs[1].units * np.nanmedian(np.reshape(zs[1], (-1,1)))]
         elif idx == 5: # linear
             if zs is None:
                 slope, offset = np.polyfit(xs[1].magnitude, ys[1].magnitude, 1)
