@@ -2,8 +2,7 @@ from IPython.lib import guisupport
 
 try:
     from qtconsole.inprocess import QtInProcessKernelManager
-    from qtconsole.rich_jupyter_widget import \
-        RichJupyterWidget as RichIPythonWidget
+    from qtconsole.rich_jupyter_widget import RichJupyterWidget as RichIPythonWidget
 except ImportError:
     from IPython.qt.console.rich_ipython_widget import RichIPythonWidget
     from IPython.qt.inprocess import QtInProcessKernelManager

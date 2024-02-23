@@ -2,11 +2,15 @@ from qtpy import API, QtCore, QtGui, QtWidgets
 from qtpy.QtCore import Qt
 
 if API == "pyqt5":
-    from matplotlib.backends.backend_qt5agg import (FigureCanvasQTAgg,
-                                                    NavigationToolbar2QT)
+    from matplotlib.backends.backend_qt5agg import (
+        FigureCanvasQTAgg,
+        NavigationToolbar2QT,
+    )
 else:
-    from matplotlib.backends.backend_qt4agg import (FigureCanvasQTAgg,
-                                                    NavigationToolbar2QT)
+    from matplotlib.backends.backend_qt4agg import (
+        FigureCanvasQTAgg,
+        NavigationToolbar2QT,
+    )
 
 if hasattr(Qt, "AA_EnableHighDpiScaling"):
     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
