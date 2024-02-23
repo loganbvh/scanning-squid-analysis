@@ -1,27 +1,37 @@
-from ..qt import Qt, QtCore, QtWidgets, QtGui
 from matplotlib.widgets import AxesWidget
 
+from ..qt import Qt, QtCore, QtGui, QtWidgets
+
+
 class LabeledSlider(QtWidgets.QWidget):
-    """QSlider with ticks and labels.
-    """
-    def __init__(self, minimum, maximum, init, interval=1, orientation=Qt.Horizontal,
-            labels=None, parent=None):
+    """QSlider with ticks and labels."""
+
+    def __init__(
+        self,
+        minimum,
+        maximum,
+        init,
+        interval=1,
+        orientation=Qt.Horizontal,
+        labels=None,
+        parent=None,
+    ):
         super().__init__(parent=parent)
 
-        levels = range(minimum, maximum+interval, interval)
+        levels = range(minimum, maximum + interval, interval)
         if labels is not None:
             if not isinstance(labels, (tuple, list)):
                 raise Exception("<labels> is a list or tuple.")
             if len(labels) != len(levels):
                 raise Exception("Size of <labels> doesn't match levels.")
-            self.levels=list(zip(levels,labels))
+            self.levels = list(zip(levels, labels))
         else:
-            self.levels=list(zip(levels,map(str,levels)))
+            self.levels = list(zip(levels, map(str, levels)))
 
         if orientation == Qt.Horizontal:
-            self.layout=QtWidgets.QVBoxLayout(self)
+            self.layout = QtWidgets.QVBoxLayout(self)
         elif orientation == Qt.Vertical:
-            self.layout=QtWidgets.QHBoxLayout(self)
+            self.layout = QtWidgets.QHBoxLayout(self)
         else:
             raise Exception("<orientation> wrong.")
 
@@ -31,8 +41,9 @@ class LabeledSlider(QtWidgets.QWidget):
         self.right_margin = 10
         self.bottom_margin = 10
 
-        self.layout.setContentsMargins(self.left_margin,self.top_margin,
-                self.right_margin,self.bottom_margin)
+        self.layout.setContentsMargins(
+            self.left_margin, self.top_margin, self.right_margin, self.bottom_margin
+        )
 
         self.slider = QtWidgets.QSlider(orientation, self)
         self.slider.setMinimum(minimum)
@@ -44,7 +55,9 @@ class LabeledSlider(QtWidgets.QWidget):
             self.slider.setTickPosition(QtWidgets.QSlider.TicksLeft)
         self.slider.setTickInterval(interval)
         self.slider.setSingleStep(1)
-        self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum)
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum
+        )
 
         self.layout.addWidget(self.slider)
 
@@ -52,13 +65,17 @@ class LabeledSlider(QtWidgets.QWidget):
         super().paintEvent(e)
         style = self.slider.style()
         painter = QtGui.QPainter(self)
-        painter.setPen(QtGui.QPen(Qt.black,1))
+        painter.setPen(QtGui.QPen(Qt.black, 1))
         st_slider = QtWidgets.QStyleOptionSlider()
         st_slider.initFrom(self.slider)
         st_slider.orientation = self.slider.orientation()
 
-        length = style.pixelMetric(QtWidgets.QStyle.PM_SliderLength, st_slider, self.slider)
-        available = style.pixelMetric(QtWidgets.QStyle.PM_SliderSpaceAvailable, st_slider, self.slider)
+        length = style.pixelMetric(
+            QtWidgets.QStyle.PM_SliderLength, st_slider, self.slider
+        )
+        available = style.pixelMetric(
+            QtWidgets.QStyle.PM_SliderSpaceAvailable, st_slider, self.slider
+        )
 
         for v, v_str in self.levels:
             # get the size of the label
@@ -67,51 +84,73 @@ class LabeledSlider(QtWidgets.QWidget):
             if self.slider.orientation() == Qt.Horizontal:
                 # I assume the offset is half the length of slider, therefore
                 # + length//2
-                x_loc = QtWidgets.QStyle.sliderPositionFromValue(self.slider.minimum(),
-                        self.slider.maximum(), v, available)+length//2
+                x_loc = (
+                    QtWidgets.QStyle.sliderPositionFromValue(
+                        self.slider.minimum(), self.slider.maximum(), v, available
+                    )
+                    + length // 2
+                )
 
                 # left bound of the text = center - half of text width + L_margin
-                left = x_loc-rect.width()//2+self.left_margin
+                left = x_loc - rect.width() // 2 + self.left_margin
                 bottom = self.rect().bottom()
 
                 # enlarge margins if clipping
                 if v == self.slider.minimum():
                     if left <= 0:
-                        self.left_margin=rect.width()//2-x_loc
+                        self.left_margin = rect.width() // 2 - x_loc
                     if self.bottom_margin <= rect.height():
-                        self.bottom_margin=rect.height()
+                        self.bottom_margin = rect.height()
 
-                    self.layout.setContentsMargins(self.left_margin,
-                            self.top_margin, self.right_margin,
-                            self.bottom_margin)
+                    self.layout.setContentsMargins(
+                        self.left_margin,
+                        self.top_margin,
+                        self.right_margin,
+                        self.bottom_margin,
+                    )
 
-                if v == self.slider.maximum() and rect.width()//2 >= self.right_margin:
-                    self.right_margin=rect.width()//2
-                    self.layout.setContentsMargins(self.left_margin,
-                            self.top_margin, self.right_margin,
-                            self.bottom_margin)
+                if (
+                    v == self.slider.maximum()
+                    and rect.width() // 2 >= self.right_margin
+                ):
+                    self.right_margin = rect.width() // 2
+                    self.layout.setContentsMargins(
+                        self.left_margin,
+                        self.top_margin,
+                        self.right_margin,
+                        self.bottom_margin,
+                    )
 
             else:
-                y_loc = QtWidgets.QStyle.sliderPositionFromValue(self.slider.minimum(),
-                        self.slider.maximum(), v, available, upsideDown=True)
+                y_loc = QtWidgets.QStyle.sliderPositionFromValue(
+                    self.slider.minimum(),
+                    self.slider.maximum(),
+                    v,
+                    available,
+                    upsideDown=True,
+                )
 
-                bottom = y_loc+length//2+rect.height()//2+self.top_margin-3
+                bottom = y_loc + length // 2 + rect.height() // 2 + self.top_margin - 3
                 # there is a 3 px offset that I can't attribute to any metric
 
-                left = self.left_margin-rect.width()
+                left = self.left_margin - rect.width()
                 if left <= 0:
-                    self.left_margin=rect.width()+2
-                    self.layout.setContentsMargins(self.left_margin,
-                            self.top_margin, self.right_margin,
-                            self.bottom_margin)
+                    self.left_margin = rect.width() + 2
+                    self.layout.setContentsMargins(
+                        self.left_margin,
+                        self.top_margin,
+                        self.right_margin,
+                        self.bottom_margin,
+                    )
 
             pos = QtCore.QPoint(left, bottom)
             painter.drawText(pos, v_str)
         return
 
+
 class SliderWidget(QtWidgets.QWidget):
-    """LabeledSlider synced with a spinbox to update/display current slider value.
-    """
+    """LabeledSlider synced with a spinbox to update/display current slider value."""
+
     def __init__(self, min, max, init, interval, parent=None):
         super().__init__(parent=parent)
         self.value_box = QtWidgets.QSpinBox(self)
@@ -135,14 +174,31 @@ class SliderWidget(QtWidgets.QWidget):
         self.value_box.setValue(val)
         self.slider.slider.setValue(val)
 
+
 class VertSlider(AxesWidget):
     """A slider representing a floating point range.
     For the slider to remain responsive you must maintain a
     reference to it.
     """
-    def __init__(self, ax, label, valmin, valmax, valinit=0, valfmt='%1.2f',
-                 closedmin=True, closedmax=True, slidermin=None,
-                 slidermax=None, dragging=True, fontsize=None, labels=True, start_at_bottom=True, **kwargs):
+
+    def __init__(
+        self,
+        ax,
+        label,
+        valmin,
+        valmax,
+        valinit=0,
+        valfmt="%1.2f",
+        closedmin=True,
+        closedmax=True,
+        slidermin=None,
+        slidermax=None,
+        dragging=True,
+        fontsize=None,
+        labels=True,
+        start_at_bottom=True,
+        **kwargs
+    ):
         """
         Create a slider from *valmin* to *valmax* in axes *ax*.
 
@@ -181,7 +237,7 @@ class VertSlider(AxesWidget):
         else:
             self.poly = ax.axhspan(valinit, valmax, 0, 1, **kwargs)
 
-        self.hline = ax.axhline(valinit, 0, 1, color='k', lw=2)
+        self.hline = ax.axhline(valinit, 0, 1, color="k", lw=2)
 
         self.valfmt = valfmt
         ax.set_xticks([])
@@ -189,19 +245,30 @@ class VertSlider(AxesWidget):
         ax.set_yticks([])
         ax.set_navigate(False)
 
-        self.connect_event('button_press_event', self._update)
-        self.connect_event('button_release_event', self._update)
+        self.connect_event("button_press_event", self._update)
+        self.connect_event("button_release_event", self._update)
         if dragging:
-            self.connect_event('motion_notify_event', self._update)
+            self.connect_event("motion_notify_event", self._update)
         if labels:
-            self.label = ax.text(0.5, 1.05, label, transform=ax.transAxes,
-                                verticalalignment='center',
-                                horizontalalignment='center', size=fontsize)
+            self.label = ax.text(
+                0.5,
+                1.05,
+                label,
+                transform=ax.transAxes,
+                verticalalignment="center",
+                horizontalalignment="center",
+                size=fontsize,
+            )
 
-            self.valtext = ax.text(0.5, -0.1, valfmt % valinit,
-                                transform=ax.transAxes,
-                                verticalalignment='center',
-                                horizontalalignment='center', size=fontsize)
+            self.valtext = ax.text(
+                0.5,
+                -0.1,
+                valfmt % valinit,
+                transform=ax.transAxes,
+                verticalalignment="center",
+                horizontalalignment="center",
+                size=fontsize,
+            )
 
         self.cnt = 0
         self.observers = {}
@@ -213,24 +280,23 @@ class VertSlider(AxesWidget):
         self.drag_active = False
 
     def _update(self, event):
-        """Update the slider position.
-        """
+        """Update the slider position."""
         if self.ignore(event):
             return
 
         if event.button != 1:
             return
 
-        if event.name == 'button_press_event' and event.inaxes == self.ax:
+        if event.name == "button_press_event" and event.inaxes == self.ax:
             self.drag_active = True
             event.canvas.grab_mouse(self.ax)
 
         if not self.drag_active:
             return
 
-        elif ((event.name == 'button_release_event') or
-              (event.name == 'button_press_event' and
-               event.inaxes != self.ax)):
+        elif (event.name == "button_release_event") or (
+            event.name == "button_press_event" and event.inaxes != self.ax
+        ):
             self.drag_active = False
             event.canvas.release_mouse(self.ax)
             return
@@ -258,14 +324,13 @@ class VertSlider(AxesWidget):
         self.set_val(val)
 
     def set_val(self, val):
-        """Set the slider value and update rectangle.
-        """
+        """Set the slider value and update rectangle."""
         xy = self.poly.xy
         xy[1] = 0, val
         xy[2] = 1, val
         self.poly.xy = xy
         self.hline.set_ydata(val)
-        if hasattr(self, 'valtext'):
+        if hasattr(self, "valtext"):
             self.valtext.set_text(self.valfmt % val)
         if self.drawon:
             self.ax.figure.canvas.draw_idle()
@@ -285,15 +350,13 @@ class VertSlider(AxesWidget):
         return cid
 
     def disconnect(self, cid):
-        """Remove the observer with connection id *cid*.
-        """
+        """Remove the observer with connection id *cid*."""
         try:
             del self.observers[cid]
         except KeyError:
             pass
 
     def reset(self):
-        """Reset the slider to the initial value if needed.
-        """
-        if (self.val != self.valinit):
+        """Reset the slider to the initial value if needed."""
+        if self.val != self.valinit:
             self.set_val(self.valinit)
