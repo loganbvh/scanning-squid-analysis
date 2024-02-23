@@ -680,6 +680,9 @@ class PlotWidget(QtWidgets.QWidget):
             xlab = xlabel if slice_state == "x" else ylabel
             label = zlabel.split(" ")[:1] + ["".join(zlabel.split(" ")[1:])]
             ylab = "\n".join(label)
+            ax1.set_xlabel(xlab)
+            ax1.set_ylabel(ylab)
+
             color_by_value = self.line_color_btn.isChecked()
             if slice_state == "x":
                 slice_xs = xs.array.magnitude
@@ -698,10 +701,14 @@ class PlotWidget(QtWidgets.QWidget):
                 segments = np.concatenate(
                     [points[:-2], points[1:-1], points[2:]], axis=1
                 )
+                if mask.any():
+                    vmin, vmax = np.min(slice_ys), np.max(slice_ys)
+                else:
+                    vmin, vmax = 0, 1
                 lc = LineCollection(
                     segments,
                     cmap=cmap,
-                    norm=colors.Normalize(np.min(slice_ys), np.max(slice_ys)),
+                    norm=colors.Normalize(vmin, vmax),
                 )
                 lc.set_array(slice_ys)
                 lc.set_linewidth(plot_lw)
@@ -715,9 +722,6 @@ class PlotWidget(QtWidgets.QWidget):
                 cut = ax0.axhline(y=ax0.get_ylim()[0], color="k", alpha=0.8, lw=2)
             else:
                 cut = ax0.axvline(x=ax0.get_xlim()[0], color="k", alpha=0.8, lw=2)
-
-            ax1.set_xlabel(xlab)
-            ax1.set_ylabel(ylab)
 
             if self.line_color_btn.isChecked() and self.get_opt("histogram"):
                 # adjust line color based on min_slider and max_slider
